@@ -1,17 +1,19 @@
 import re, sys
 
-class Stats(object):
+class Error(Exception):
 
-    class Error(Exception):
-
-        def __init__(self):
-            print """ 
+    def __init__(self):
+        print """ 
  __init__ got garbage arguments
 
- Usage: Stats(transactions, conf):
+ Stats, Year and Month must get **kwargs:
     transactions = dict {str, Transaction}
     conf         = dict {str, list[str]  }
+    OR
+    Stats object [Month and Year]
 """
+
+class Stats(object):
 
     def __init__(self, transactions, conf):
 
@@ -20,7 +22,7 @@ class Stats(object):
             self.__groups__ = {'inntekt':[],'utland':[]}
             self.assign_groups(conf)
         except:
-            raise Stats.Error()
+            raise Error()
 
     def assign_groups(self, conf):
         self.__groups__.update(dict((g,[]) for g in conf.keys()))
@@ -31,7 +33,7 @@ class Stats(object):
                 self.__groups__['inntekt'].append(tr)
                 continue
             account = tr.account.upper();
-            for group, keywords in conf.items():
+            for group, keywords in conf.iteritems():
                 for kw in keywords:
                     if re.sub(kw,'',account) != account:
                         tr.add_group(group)
@@ -45,50 +47,61 @@ class Stats(object):
             if tr.groups:
                 self.__groups__[tr.groups[0]].append(tr)
 
-    def get_transactions(self):      
+    def get_transactions(self):
         return self.__transactions__
     transactions = property(get_transactions, None, None)
+    def get_groups(self):
+        return self.__groups__
+    groups = property(get_groups, None, None)
 
                 
 class Year(Stats, object):
 
     def __init__(self, year, **kwargs):
-
-        conf, transactions = [None, None]
-        for key, arg in kwargs:
-            if key == "conf" and type(arg) == dict:
-                conf = arg
-            elif key == "transactions" and type(arg) == dict:
-                self.__transactions__ = arg
-            elif key == "stats" and type(stats) == Stats:
-                self = stats
-                return
-
-        super(Year, self).__init__(transactions, conf)
-        self.__filter_year__(self, year)
-
+        
         self.__year__ = year
-        def get_year(self): return self.__year__
-        year = property(get_year, None, None)
+        try:
+            self.__transactions__ = kwargs["transactions"]
+            self.__conf__ = kwargs["conf"]
+            self.__filter__(False)
+            super(Year, self).__init__(transactions, conf)
+        except:
+            try:
+                self.__transactions__ = kwargs["stats"].transactions
+                self.__groups__ = kwargs["stats"].groups
+                self.__filter__()
+            except:
+                raise Error()
 
-    def __filter_year__(self, year):
-        for md5, tr in transactions.items():
-            if tr.get_date_object().year != int(year):
-                del self.__transactions__[md5]
+    def get_year(self): return self.__year__
+    year = property(get_year, None, None)
+
+    def __filter__(self, filter_groups=True):
+        self.__transactions__ = dict((md5,tr) for (md5,tr) in self.transactions.iteritems() if tr.get_date_object().year != int(self.year))
+        if filter_groups:
+            def f(tr): return tr.get_date_object().year == int(self.year)
+            self.__groups__ = dict((gr,filter(f,trs)) for (gr,trs) in self.groups.iteritems())
 
 
 class Month(Year, object):
 
     def __init__(self, year, month, **kwargs):
 
-        super(Month, self).__init__(year, **kwargs)
-        self.__filter_month__(self, month)
-
         self.__month__ = month
-        def get_month(self): return self.__month__
-        month = property(get_month, None, None)
+        try:
+            self.__transactions__ = kwargs["transactions"]
+            self.__conf__ = kwargs["conf"]
+            self.__filter__(False)
+            super(Month, self).__init__(year, **kwargs)
+        except:
+            super(Month, self).__init__(year, **kwargs)
+            self.__filter_month__()
 
-    def __filter_month__(self, month):
-        for md5, tr in transactions.items():
-            if tr.get_date_object().month != int(month):
-                del self.__transactions__[md5]
+    def get_month(self): return self.__month__
+    month = property(get_month, None, None)
+
+    def __filter__(self, filter_groups=True):
+        self.__transactions__ = dict((md5,tr) for (md5,tr) in self.transactions.iteritems() if tr.get_date_object().month != int(self.month))
+        if filter_groups:
+            def f(tr): return tr.get_date_object().month == int(self.month)
+            self.__groups__ = dict((gr,filter(f,trs)) for (gr,trs) in self.groups.iteritems())
