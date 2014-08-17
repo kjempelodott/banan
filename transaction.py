@@ -55,4 +55,4 @@ class Transaction(object):
         return cmp(self.__date__.toordinal(), other.__date__.toordinal())
 
     def __str__(self):
-        return "%s %-50s\t%10.2f %s\t%s" % (self.date, self.account[:50], self.amount, self.currency, self.groups)
+        return "%s %-40s\t%10.2f" % (self.date, self.account[:40], self.amount_local)
