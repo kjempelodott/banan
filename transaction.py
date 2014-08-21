@@ -4,13 +4,14 @@ class Transaction(object):
 
     def __init__(self):
          
-        self.__account__     = ''
-        self.__amount__      = 0
-        self.__amount_local__= 0
-        self.__date__        = datetime.date.today()
-        self.__currency__    = ''
-        self.__groups__      = []
-        self.__re_no__       = r'(-?[\.\d]+),(\d\d)'
+        self.__account__      = ''
+        self.__amount__       = 0
+        self.__amount_local__ = 0
+        self.__date__         = datetime.date.today()
+        self.__currency__     = ''
+        self.__labels__       = []
+        self.__re_no__        = r'(-?[\.\d]+),(\d\d)'
+        self.cash_flow_ignore = False
     
     def get_account(self): return self.__account__    
     def set_account(self, value): 
@@ -43,13 +44,13 @@ class Transaction(object):
     def set_currency(self, value): 
         self.__currency__ = value
     currency = property(get_currency, None, None)    
-    def add_group(self, group):
-        self.__groups__.append(group)
-    def get_groups(self):
-        return self.__groups__
-    def reset_groups(self):
-        self.__groups__ = []
-    groups = property(get_groups, None, reset_groups)    
+    def add_label(self, label):
+        self.__labels__.append(label)
+    def get_labels(self):
+        return self.__labels__
+    def reset_labels(self):
+        self.__labels__ = []
+    labels = property(get_labels, None, reset_labels)    
     
     def __cmp__(self, other):
         return cmp(self.__date__.toordinal(), other.__date__.toordinal())

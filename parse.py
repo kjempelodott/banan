@@ -6,9 +6,11 @@ from transaction import Transaction
 class yAbankParser(object):
 
     def __init__(self):
+        self.CHARSET = 'iso-8859-1'
         self.transactions = {}
 
     def parse(self, data):
+        data = data.decode(self.CHARSET).encode('utf-8')
         for line in data.split('\n'):
             if not line:
                 continue
@@ -33,6 +35,8 @@ class yAbankParser(object):
 class BankNorwegianParser(HTMLParser, object):
 
     def __init__(self):
+        self.CHARSET     = 'iso-8859-1'
+
         self.DATE        =   1
         self.ACCOUNT     =   2
         self.AMOUNT      =   8
@@ -87,6 +91,7 @@ class BankNorwegianParser(HTMLParser, object):
                 self.next ^= self.RETURN
                 return
             
+            data = data.decode(self.CHARSET).encode('utf-8')
             data = re.sub(r'\s+', '', data)
 
             # Set date

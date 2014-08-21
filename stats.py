@@ -1,6 +1,5 @@
 import re, sys, datetime
 
-
 def sorted_items(x):
     for key in sorted(x.keys()):
         yield key, x[key]
@@ -12,7 +11,7 @@ class Error(Exception):
         self.message = """ 
  __init__ got garbage arguments
 
- Stats(transactions, conf)
+ Stats(transactions, labels, settings)
  Year(year, **kwargs)
  Month(year, month, **kwargs)
 
@@ -21,7 +20,8 @@ class Error(Exception):
 
  **kwargs:
     transactions = dict {str, Transaction}
-    conf         = dict {str, list[str]  }
+    labels       = dict {str, list[str]  }
+    settings     = dict {str, str        }
     OR
     stats        = Stats object
 """ % datetime.date.today().year
@@ -32,52 +32,68 @@ class Error(Exception):
 
 class Stats(object):
 
-    def __init__(self, transactions, conf):
+    def __init__(self, **kwargs):
 
         try:
-            self.__transactions__ = transactions
-            self.__groups__ = {'inntekter':[],'utland':[]}
-            self.assign_groups(conf)
+            self.__transactions__ = kwargs['transactions']
+            labels = kwargs['labels']
+            settings = kwargs['settings']
+            self.__labels__ = {settings['incomes_label']:[], 'annet':[]}
+            self.__lc__ = settings['local_currency']
+            self.__fcl__ = settings['foreign_currency_label']
+            self.__ignore__ = settings['cash_flow_ignore']
+            if self.__fcl__: self.__labels__[self.__fcl__] = []
+            self.assign_labels(labels, settings)
+            self.balance = 0
         except:
             raise Error
-        self.sum = sum(tr.amount_local for tr in self.transactions.values()) 
 
-    def assign_groups(self, conf):
-        self.__groups__.update(dict((g,[]) for g in conf.keys()))
+    def assign_labels(self, labels, settings):
+        self.__labels__.update(dict((g,[]) for g in labels.keys()))
         for tr in self.__transactions__.values():
-            tr.reset_groups()
-            if tr.amount > 0:
-                print tr.amount, tr.currency
-                tr.add_group('inntekter')
-                self.__groups__['inntekter'].append(tr)
-                continue
-            account = tr.account.upper();
-            for group, keywords in conf.iteritems():
+            tr.reset_labels()
+            account = tr.account
+            for label, keywords in labels.iteritems():
                 for kw in keywords:
                     if re.sub(kw,'',account) != account:
-                        tr.add_group(group)
+                        tr.add_label(label)
+                        if label in self.__ignore__:
+                            tr.cash_flow_ignore = True
                         break
-            if tr.currency != 'NOK' and not tr.groups:
-                tr.add_group('utland')
-            if len(tr.groups) > 1:
-                print "WARNING: transaction matches more than one group\n" + \
-                    " %s\n  in %s\n" % (tr.account, tr.groups) + \
-                    " will assign to",tr.groups[0]
-            if tr.groups:
-                self.__groups__[tr.groups[0]].append(tr)
+            if not tr.labels:
+                if tr.currency != self.__lc__ and self.__fcl__:
+                    tr.add_label(self.__fcl__)
+                elif tr.amount > 0:
+                    tr.add_label(settings['incomes_label'])
+                else:
+                    tr.add_label('annet')
+            if len(tr.labels) > 1:
+                print "WARNING: transaction matches more than one label\n" + \
+                    " %s\n   -> %s\n" % (tr.account, ', '.join(tr.labels)) + \
+                    " will assign to",tr.labels[0]
+            if tr.labels:
+                self.__labels__[tr.labels[0]].append(tr)
 
     def get_transactions(self):
         return self.__transactions__
     transactions = property(get_transactions, None, None)
-    def get_groups(self):
-        return self.__groups__
-    groups = property(get_groups, None, None)
+    def get_labels(self):
+        return self.__labels__
+    labels = property(get_labels, None, None)
 
     def __str__(self):
-        ret = '\n'.join("[%s]\n   %s\n" % (gr,'\n   '.join(str(tr) for tr in sorted(trs))) for (gr,trs) in sorted_items(self.groups))
-        strlen = 4+len(str(self.__transactions__.values()[0]))
-        ret+= '-'*strlen
-        ret+= '\n%s%-10.2f\n' % (' '*(strlen-9), self.sum)
+        if not self.balance:
+            def f(tr): return not tr.cash_flow_ignore
+            self.balance = sum(tr.amount_local for tr in filter(f, self.transactions.values()))
+
+        strlen = 5+len(str(self.__transactions__.values()[0]))+len(self.__lc__)
+        sumstr = '_'*strlen + '\n' + ' '*(strlen-14) + '%10.2f %s\n'
+
+        ret = '\n'.join("[%s]\n   %s\n%s" % (lb,
+                                             "\n   ".join("%s %s" % (str(tr), self.__lc__) for tr in sorted(trs)), 
+                                             sumstr % (sum(tr.amount_local for tr in trs), self.__lc__)) 
+                        for (lb,trs) in sorted_items(self.labels) if trs)
+        ret+= (sumstr % (self.balance, self.__lc__)).replace('_',"=")
         return ret
 
                 
@@ -88,29 +104,32 @@ class Year(Stats, object):
         try:
             assert(int(year) <= datetime.date.today().year)
             self.__year__ = int(year)
-            self.__transactions__ = kwargs["transactions"]
-            self.__conf__ = kwargs["conf"]
+            self.__transactions__ = kwargs['transactions']
             self.__filter_year__(False)
-            super(Year, self).__init__(transactions, conf)
+            kwargs['transactions'] = self.__transactions__
+            super(Year, self).__init__(**kwargs)
         except AssertionError:
             raise Error
         except:
             try:
-                self.__transactions__ = kwargs["stats"].transactions
-                self.__groups__ = kwargs["stats"].groups
+                st = kwargs['stats']
+                self.__transactions__ = st.transactions
+                self.__labels__ = st.labels
+                self.__lc__ = st.__lc__
+                self.__fcl__ = st.__fcl__
+                self.balance = 0
                 self.__filter_year__()
             except:
                 raise Error
-        self.sum = sum(tr.amount_local for tr in self.transactions.values()) 
            
     def get_year(self): return self.__year__
     year = property(get_year, None, None)
 
-    def __filter_year__(self, filter_groups=True):
-        self.__transactions__ = dict((md5,tr) for (md5,tr) in self.transactions.iteritems() if tr.get_date_object().year == int(self.year))
-        if filter_groups:
-            def f(tr): return tr.get_date_object().year == int(self.year)
-            self.__groups__ = dict((gr,filter(f,trs)) for (gr,trs) in self.groups.iteritems())
+    def __filter_year__(self, filter_labels=True):
+        def f(tr): return tr.get_date_object().year == int(self.year)
+        self.__transactions__ = dict(zip(self.transactions.keys(), filter(f, self.transactions.values())))
+        if filter_labels:
+            self.__labels__ = dict((lb,filter(f,trs)) for (lb,trs) in self.labels.iteritems())
 
             
 class Month(Year, object):
@@ -120,22 +139,21 @@ class Month(Year, object):
         try:
             assert(int(month) in range(1,13))
             self.__month__ = int(month)
-            self.__transactions__ = kwargs["transactions"]
-            self.__conf__ = kwargs["conf"]
+            self.__transactions__ = kwargs['transactions']
             self.__filter_month__(False)
+            kwargs['transactions'] = self.__transactions__
             super(Month, self).__init__(year, **kwargs)
         except AssertionError:
-            raise Error
+           raise Error
         except:
-            super(Month, self).__init__(year, **kwargs)
-            self.__filter_month__()
-        self.sum = sum(tr.amount_local for tr in self.transactions.values()) 
+           super(Month, self).__init__(year, **kwargs)
+           self.__filter_month__()
 
     def get_month(self): return self.__month__
     month = property(get_month, None, None)
 
-    def __filter_month__(self, filter_groups=True):
-        self.__transactions__ = dict((md5,tr) for (md5,tr) in self.transactions.iteritems() if tr.get_date_object().month == self.month)
-        if filter_groups:
-            def f(tr): return tr.get_date_object().month == self.month
-            self.__groups__ = dict((gr,filter(f,trs)) for (gr,trs) in self.groups.iteritems())
+    def __filter_month__(self, filter_labels=True):
+        def f(tr): return tr.get_date_object().month == self.month
+        self.__transactions__ = dict(zip(self.transactions.keys(), filter(f, self.transactions.values())))
+        if filter_labels:
+            self.__labels__ = dict((lb,filter(f,trs)) for (lb,trs) in self.labels.iteritems())

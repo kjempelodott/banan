@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-import os, pickle
+import os, sys, pickle
 from hashlib import md5
 from parse import yAbankParser, BankNorwegianParser
-from stats import Stats
-from config import configure_groups
+from stats import Stats, Year, Month
+from config import configure
 
 files_md5 = {}
 f_pickle = './.files_md5.pickle'
@@ -19,6 +19,8 @@ t_pickle = './.transactions.pickle'
 updated = False
 
 for f in os.listdir('./banknorwegian'):
+    if f[-1] == '~':
+        continue
     try:
         f = './banknorwegian/' + f
         data = open(f, 'r').read()
@@ -40,6 +42,8 @@ for f in os.listdir('./banknorwegian'):
 
 
 for f in os.listdir('./yabank'):
+    if f[-1] == '~':
+        continue
     try:
         f = './yabank/' + f
         data = open(f, 'r').read()
@@ -59,15 +63,16 @@ for f in os.listdir('./yabank'):
     except:
         print "Failed to parse", f
 
-conf = configure_groups()
-stats = Stats(transactions, conf)
+labels, settings = configure()
+#stats = Stats(transactions, labels, settings)
+m_04_2014 = Year(2014,transactions=transactions,labels=labels,settings=settings)
+
 
 if updated:
     pickle.dump(files_md5, open(f_pickle, 'w'))
     pickle.dump(transactions, open(t_pickle, 'w'))
 
-for v in sorted(transactions.values()):
-    print v
+print m_04_2014
 
 
 # import curses, traceback
@@ -80,7 +85,7 @@ for v in sorted(transactions.values()):
 #         # where no buffering is performed on keyboard input
 #         curses.noecho()
 #         curses.cbreak()
-        
+
 #         # In keypad mode, escape sequences for special keys
 #         # (like the cursor keys) will be interpreted and
 #         # a special value like curses.KEY_LEFT will be returned
@@ -98,3 +103,4 @@ for v in sorted(transactions.values()):
 #         curses.nocbreak()
 #         curses.endwin()
 #         traceback.print_exc()           # Print the exception
+
