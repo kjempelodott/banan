@@ -65,7 +65,7 @@ for f in os.listdir('./yabank'):
 
 labels, settings = configure()
 #stats = Stats(transactions, labels, settings)
-m_04_2014 = Year(2014,transactions=transactions,labels=labels,settings=settings)
+m_04_2014 = Month(2014,01,transactions=transactions,labels=labels,settings=settings)
 
 
 if updated:
@@ -75,12 +75,14 @@ if updated:
 print m_04_2014
 
 
-# import curses, traceback
+# def main(stdscr):
+#     while 1:
+#         c = stdscr.getch()
 
 # if __name__ == "__main__":
 #     try:
 #         # Initialize curses
-#         stdscr=curses.initscr()
+#         stdscr = curses.initscr()
 #         # Turn off echoing of keys, and enter cbreak mode,
 #         # where no buffering is performed on keyboard input
 #         curses.noecho()
@@ -91,16 +93,13 @@ print m_04_2014
 #         # a special value like curses.KEY_LEFT will be returned
 #         stdscr.keypad(1)
 #         main(stdscr)                    # Enter the main loop
-#         # Set everything back to normal
-#         stdscr.keypad(0)
-#         curses.echo()
-#         curses.nocbreak()
-#         curses.endwin()                 # Terminate curses
 #     except:
-#         # In event of error, restore terminal to sane state.
+#         pass
+#     finally:
+#         # Restore terminal to sane state
 #         stdscr.keypad(0)
 #         curses.echo()
 #         curses.nocbreak()
 #         curses.endwin()
-#         traceback.print_exc()           # Print the exception
+
 
