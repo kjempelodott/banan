@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
-import os, sys, pickle
+import os, sys, pickle, traceback, curses
+from curses import panel
 from hashlib import md5
 from parse import yAbankParser, BankNorwegianParser
 from stats import Stats, Year, Month
 from config import configure
+import ui
+from ui import Dict, Menu
+
 
 files_md5 = {}
 f_pickle = './.files_md5.pickle'
@@ -19,7 +23,7 @@ t_pickle = './.transactions.pickle'
 updated = False
 
 for f in os.listdir('./banknorwegian'):
-    if f[-1] == '~':
+    if os.path.splitext(f)[1] != '.html':
         continue
     try:
         f = './banknorwegian/' + f
@@ -42,7 +46,7 @@ for f in os.listdir('./banknorwegian'):
 
 
 for f in os.listdir('./yabank'):
-    if f[-1] == '~':
+    if os.path.splitext(f)[1] != '.csv':
         continue
     try:
         f = './yabank/' + f
@@ -65,14 +69,90 @@ for f in os.listdir('./yabank'):
 
 labels, settings = configure()
 #stats = Stats(transactions, labels, settings)
-m_04_2014 = Month(2014,01,transactions=transactions,labels=labels,settings=settings)
+obj = Month(2014,8,transactions=transactions,labels=labels,
+            settings=settings)
 
 
 if updated:
     pickle.dump(files_md5, open(f_pickle, 'w'))
     pickle.dump(transactions, open(t_pickle, 'w'))
 
-print m_04_2014
+
+def main_loop(menus, stdscr, win):
+    visible = None
+    while 1:
+        c = stdscr.getch()
+        # ignore everything that is not a letter
+        if c > 122 or c < 65:
+            continue
+        # letter
+        c = chr(c).lower()
+        # display a menu
+        if menus[c]:
+            # hide open menu
+            if visible:
+                menus[visible].hide()
+                if visible == c:
+                    visible = None
+                    continue
+            # show menu
+            menus[c].show()
+            visible = c
+            continue
+        # menu is open -> do action
+        if visible and menus[visible][c]:
+            continue
+        if c == "a":
+            y = 1
+            for line in str(obj).split('\n'):
+                win.addstr(y, 1, line)
+                y += 1
+            win.refresh(0,0,2,1,20,70)
+        # exit
+        if c == "e":
+            return
+
+
+if __name__ == "__main__":
+    try:
+        WIDTH = 80
+        HEIGHT = 24
+        MENU0 = 2
+        MENUW = 10
+
+        stdscr = ui.init(HEIGHT, WIDTH)
+        stdscr.hline(2, 1, curses.ACS_HLINE, WIDTH - 2)
+        main_win = curses.newpad(1000, WIDTH)
+        main_win.refresh(0,0,3,3,6,6)
+        #main_panel = curses.panel.new_panel(main_win)
+        main_win.border(0)
+
+        menus = Dict()
+        menus["f"] = Menu.add_menu(stdscr, "File" , MENU0, MENUW,
+                                   (("Load"  ,None),
+                                    ("Update",None)))
+        menus["p"] = Menu.add_menu(stdscr, "Plot" , MENU0 + MENUW, MENUW,
+                                   (("Month" ,None),
+                                    ("Year"  ,None),
+                                    ("Total" ,None)))
+        menus["s"] = Menu.add_menu(stdscr, "Stats", MENU0 + 2*MENUW, MENUW,
+                                   (("Month" ,None),
+                                    ("Year"  ,None),
+                                    ("Total" ,None)))
+        Menu.add_menu(stdscr, "Exit", MENU0 + 3*MENUW, MENUW)
+
+        main_loop(menus, stdscr, main_win)
+    except:
+        ui.clean_up(stdscr)
+        print traceback.format_exc()
+    else:
+        ui.clean_up(stdscr)
+
+
+
+
+
+
 
 
 # def main(stdscr):
