@@ -3,11 +3,39 @@ from HTMLParser import HTMLParser
 from hashlib import md5
 from transaction import Transaction
 
-class yAbankParser(object):
+class __Parser__(object):
+
+    def update(files, files_md5, transactions):
+        updated = False
+        for f in files:
+            try:
+                if os.path.splitext(f)[1] != self.__fext__:
+                    continue
+                f = './yabank/' + f
+                data = open(f, 'r').read()
+                _md5 = md5(data).hexdigest()
+                if files_md5.has_key(f) and files_md5[f] != _md5:
+                    parser = self.__class__()
+                    yAbankParser.parse(data)
+                    transactions.update(parser.transactions)
+                    files_md5[f] = _md5
+                    updated = True
+                    #msg("Successfully parsed", f)
+            except IOError: pass
+                #msg("Could not open file", f)
+            except AttributeError: pass
+                #msg("Not implemented! (private class __Parser__)")
+            except: pass
+                #msg("Failed to parse", f)
+            return updated
+
+class yAbankParser(__Parser__, object):
 
     def __init__(self):
         self.CHARSET = 'iso-8859-1'
         self.transactions = {}
+        self.__class__ = yAbankParser
+        self.__fext__ = '.csv'
 
     def parse(self, data):
         data = data.decode(self.CHARSET).encode('utf-8')
@@ -19,7 +47,8 @@ class yAbankParser(object):
             account = line[2]
             amount_local = amount = line[3]
             currency = 'NOK'
-            non_local = re.match("VISA .+ \d\d.\d\d (\D+) (\d+,\d\d) .+", account)
+            non_local = \
+                re.match("VISA .+ \d\d.\d\d (\D+) (\d+,\d\d) .+", account)
             if non_local:
                 currency, amount = non_local.groups()
             tr = Transaction()
@@ -32,10 +61,12 @@ class yAbankParser(object):
             self.transactions[md5(str(tr)).hexdigest()] = tr
 
 
-class BankNorwegianParser(HTMLParser, object):
+class BankNorwegianParser(__Parser__, HTMLParser, object):
 
     def __init__(self):
         self.CHARSET     = 'iso-8859-1'
+        self.__class__ = BankNorwegianParser
+        self.__fext__ = '.html'
 
         self.DATE        =   1
         self.ACCOUNT     =   2

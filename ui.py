@@ -29,25 +29,31 @@ class Menu():
     :param win: menu window
     :type win: :py:obj:`curses.window` 
     """
-    def __init__(self, win):
+    def __init__(self, win = None):
         self.window = win
-        self.panel = curses.panel.new_panel(win)
-        self.panel.hide()
-        panel.update_panels()
+        if win:
+            self.panel = curses.panel.new_panel(win)
+            self.panel.hide()
+            panel.update_panels()
         self.actions = Dict()
     def show(self):
         """
         Hide the menu panel by calling :py:meth:`curses.panel.Panel.hide()`.
         """
+        if not self.window:
+            return
         self.panel.show()
         panel.update_panels()
-        self.window.refresh()
+        curses.doupdate()
     def hide(self):
         """
         Hide the menu panel by calling :py:meth:`curses.panel.Panel.hide()`.
         """
+        if not self.window:
+            return
         self.panel.hide()
-        self.window.refresh()
+        panel.update_panels()
+        curses.doupdate()
     def __getitem__(self, key):
         action = self.actions[key]
         if action:
@@ -56,13 +62,19 @@ class Menu():
             func(*args)
             panel.update_panels()
     def __setitem__(self, key, action):
-        assert(type(action) == list)
+        try:
+            assert(type(action) == list)
+        except AssertionError: # Function without arguments
+            action = [action]
+        assert(str(type(action[0])) in ("<type 'function'>",
+                                        "<type 'instancemethod'>",
+                                        "<type 'NoneType'>"))
         self.actions[key] = action
 
     @staticmethod
     def add_menu(win, title, xpos, width, items = None):
         """
-        Add a menu to the input window. \
+        Add a menu to the window ``win``. \
         Items in the menu are specified in ``items``.
 
         :param win: window
@@ -71,15 +83,25 @@ class Menu():
         :param int xpos: position
         :param int width: width of menu
         :param items: menu items and actions
-        :type items: :py:obj:`tuple` ( :py:obj:`tuple` ( :py:obj:`str` , \
-        :py:obj:`list` [ `function` , `*args` ] ) , ... )
+        :type items: :py:obj:`list` or :py:obj:`tuple`
+
+        .. note:: \
+        \
+        * Menu with several items \n \
+                  \t ``items = ( \n \
+                  \t\t ("Item1", [function1, *args]), \n \
+                  \t\t ("Item2", [function2, *args]), \n \
+                  \t\t ...)`` \n \
+        * Menu without items \n \
+                  \t ``items = [function, *args]``
+
         """
         HEIGH, WIDTH = win.getmaxyx()
         assert((type(title) == str) and len(title))
         assert((type(xpos) == int) and xpos >= 0 and xpos <= WIDTH)
         win.addstr(1, xpos, title[0], curses.A_BOLD)
         win.addstr(1, xpos+1, title[1:])
-        n = len(items) if items else 0
+        n = len(items) if (type(items) == tuple and items) else 0
         menu = None
         if n:
             win = curses.newwin(n+2, width, 2, xpos)
@@ -90,8 +112,10 @@ class Menu():
                 win.addstr(1+i, 2, name[1:])
                 i += 1
             menu = Menu(win)
-            if action:
-                menu[name[0].lower()] = [action]
+            menu[name[0].lower()] = action
+        else:
+            menu = Menu()
+            menu[title[0].lower()] = items
         curses.doupdate()
         return menu
 
@@ -112,14 +136,17 @@ def init(h, w):
     return stdscr
 
 
-def clean_up(stdscr):
+def clean_up(stdscr, *args):
     """
     Restore terminal to sane state.
 
     :param stdscr: main window
-    :type stdscr: :py:obj:`curses.window` 
+    :type stdscr: :py:obj:`curses.window`
+    :param functions args: extra actions (in order)
     """
     stdscr.keypad(0)
     curses.nocbreak()
     curses.endwin()
     curses.echo()
+    for arg in args:
+        arg()

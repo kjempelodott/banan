@@ -4,7 +4,8 @@ def configure(conf = 'labels.conf'):
     f = open(conf, 'r')
     coding = 'utf-8'
     try:
-        coding = re.match('# -\*- coding: ([-\w]+) -\*-', f.readline()).groups()[0]
+        coding = \
+            re.match('# -\*- coding: ([-\w]+) -\*-', f.readline()).groups()[0]
     except:
         print "WARNING: failed to read coding of config file, assuming utf-8"
         f.seek(0,0)
