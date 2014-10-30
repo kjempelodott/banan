@@ -1,44 +1,43 @@
-import re, datetime
+import re, os, datetime
 from HTMLParser import HTMLParser
 from hashlib import md5
 from transaction import Transaction
 
 class __Parser__(object):
 
-    def update(files, files_md5, transactions):
+    @classmethod
+    def update(cls, files_md5, transactions):
         updated = False
-        for f in files:
+        for f in os.listdir(cls.__dir__):
             try:
-                if os.path.splitext(f)[1] != self.__fext__:
+                if os.path.splitext(f)[1] != cls.__fext__:
                     continue
-                f = './yabank/' + f
+                f = cls.__dir__ + f
                 data = open(f, 'r').read()
                 _md5 = md5(data).hexdigest()
                 if files_md5.has_key(f) and files_md5[f] != _md5:
-                    parser = self.__class__()
-                    yAbankParser.parse(data)
-                    transactions.update(parser.transactions)
+                    transactions.update(cls.parse(data))
                     files_md5[f] = _md5
                     updated = True
-                    #msg("Successfully parsed", f)
-            except IOError: pass
-                #msg("Could not open file", f)
-            except AttributeError: pass
-                #msg("Not implemented! (private class __Parser__)")
-            except: pass
-                #msg("Failed to parse", f)
-            return updated
-
+                    print "Successfully parsed", f
+            except IOError: 
+                print "Could not open file", f
+            except AttributeError:
+                print "Not implemented! (private class __Parser__)"
+            except BaseException as e:
+                print "Exception", f, ':\n', e.message
+        return updated
+            
 class yAbankParser(__Parser__, object):
 
-    def __init__(self):
-        self.CHARSET = 'iso-8859-1'
-        self.transactions = {}
-        self.__class__ = yAbankParser
-        self.__fext__ = '.csv'
+    CHARSET = 'iso-8859-10'
+    __fext__ = '.csv'
+    __dir__ = './yabank/'
 
-    def parse(self, data):
-        data = data.decode(self.CHARSET).encode('utf-8')
+    @staticmethod
+    def parse(data):
+        data = data.decode(yAbankParser.CHARSET).encode('utf-8')
+        transactions = {}
         for line in data.split('\n'):
             if not line:
                 continue
@@ -58,15 +57,17 @@ class yAbankParser(__Parser__, object):
             tr.set_currency(currency)
             dd, mm, yyyy = date.split('-')
             tr.set_date(datetime.date(int(yyyy), int(mm), int(dd)))
-            self.transactions[md5(str(tr)).hexdigest()] = tr
+            transactions[md5(str(tr)).hexdigest()] = tr
+        return transactions
 
 
 class BankNorwegianParser(__Parser__, HTMLParser, object):
 
+    CHARSET = 'iso-8859-1'
+    __fext__ = '.html'
+    __dir__ = './banknorwegian/'
+
     def __init__(self):
-        self.CHARSET     = 'iso-8859-1'
-        self.__class__ = BankNorwegianParser
-        self.__fext__ = '.html'
 
         self.DATE        =   1
         self.ACCOUNT     =   2
@@ -81,6 +82,12 @@ class BankNorwegianParser(__Parser__, HTMLParser, object):
         self.tr = None
         self.next = 0
         self.transactions = {}
+
+    @staticmethod
+    def parse(data):
+        inst = BankNorwegianParser()
+        inst.feed(data)
+        return inst.transactions
 
     def handle_starttag(self, tag, attrs):
         if self.is_trtable and tag == 'td':

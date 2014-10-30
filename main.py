@@ -9,8 +9,9 @@ from config import configure
 import ui
 from ui import Dict, Menu
 
+FUCK_CURSES=True
 
-class banan:
+class Banan:
 
     def __init__(self):
         self.CONF = 'labels.conf'
@@ -42,16 +43,13 @@ class banan:
                 if self.__files__[self.CONF] != _md5:
                     self.__files__[self.CONF] = _md5
                     do_update = True
-        if not do_update:
-            do_update = \
-                BankNorwegianParser.update(os.listdir('./banknorwegian'),
-                                           self.__files__, self.transactions)
-            do_update |= yAbankParser.update(os.listdir('./yabank'), 
-                                             self.__files__, self.transactions)
+        do_update = \
+            BankNorwegianParser.update(self.__files__, self.transactions)
+        do_update |= yAbankParser.update(self.__files__, self.transactions)
 
-        if do_update:
-            self.stats = Stats(self.transactions, self.labels, self.settings)
-            self.testobj = Month(2014,8,stats=stats)
+        # if do_update:
+        #     self.stats = Stats(self.transactions, self.labels, self.settings)
+        #     self.testobj = Month(2014,8,stats=stats)
 
     def save(self):
         pickle.dump(self.__files__, open(self.__files_pickle__, 'w'))
@@ -65,7 +63,7 @@ class banan:
                 y += 1
             self.cat_pad.refresh(*self.cat_coord)
         except:
-            raise Exception("print_cats() in banan called before "
+            raise Exception("print_cats() in Banan called before "
                             "set_cat_pad() has been called")
 
     def set_cat_pad(self, pad, HEIGHT):
@@ -117,6 +115,17 @@ def main_loop(menus, stdscr, b):
 
 
 if __name__ == "__main__":
+    if FUCK_CURSES:
+        banan = Banan()
+        banan.update()
+        banan.save()
+        stats = Stats(transactions=banan.transactions, 
+                      labels=banan.labels,
+                      settings=banan.settings)
+        testobj = Month(2014,9,stats=stats)
+        print testobj
+        sys.exit(0)
+
     try:
         WIDTH = 80
         HEIGHT = 24
@@ -131,7 +140,7 @@ if __name__ == "__main__":
         main_pad = curses.newpad(1000, MAINW)
         cat_pad.border(0)
 
-        b = banan()
+        banan = Banan()
 
         menus = Dict()
         menus["f"] = Menu.add_menu(stdscr, "File" , MENU0, MENUW,

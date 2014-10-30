@@ -82,6 +82,8 @@ class Stats(object):
     labels = property(get_labels, None, None)
 
     def __str__(self):
+        if not self.__transactions__:
+            return 'NO TRANSACTIONS'
         if not self.balance:
             def f(tr): return not tr.cash_flow_ignore
             self.balance = sum(tr.amount_local for tr in filter(f, self.transactions.values()))
