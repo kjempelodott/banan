@@ -15,7 +15,7 @@ class __Parser__(object):
                 f = cls.__dir__ + f
                 data = open(f, 'r').read()
                 _md5 = md5(data).hexdigest()
-                if files_md5.has_key(f) and files_md5[f] != _md5:
+                if not files_md5.has_key(f) or files_md5[f] != _md5:
                     transactions.update(cls.parse(data))
                     files_md5[f] = _md5
                     updated = True
