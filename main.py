@@ -16,7 +16,6 @@ class Banan:
     def __init__(self):
         self.CONF = 'labels.conf'
         self.__HAS_CATS__ = False
-        # labels should be saved in a pickle
         self.labels, self.settings = configure()
         self.load()
         self.cat_pad = None
@@ -25,35 +24,41 @@ class Banan:
     def load(self):
         self.__files__ = {}
         self.__files_pickle__ = './.files_md5.pickle'
+        self.__st_pickle__ = './.stats.pickle'
         if os.path.exists(self.__files_pickle__):
             self.__files__ = \
                 pickle.loads(open(self.__files_pickle__, 'r').read())
 
-        self.transactions = {}
-        self.__tr_pickle__ = './.transactions.pickle'
-        if os.path.exists(self.__tr_pickle__):
-            self.transactions = \
-                pickle.loads(open(self.__tr_pickle__, 'r').read())
-        
+            if os.path.exists(self.__st_pickle__):
+                self.stats = \
+                    pickle.loads(open(self.__st_pickle__, 'r').read())
+                return
+
+        # Something is wrong, reset everything
+        for f in (self.__files_pickle__, self.__st_pickle__):
+            try:
+                os.remove(f)
+            except: 
+                pass
+        self.stats = Stats(labels = self.labels,
+                           settings = self.settings,
+                           transactions = {})
+        self.update()
+            
     def update(self):
-        do_update = not self.__files__.has_key(self.CONF)
-        if not do_update:
+        if self.__files__.has_key(self.CONF):
             with open(self.CONF, 'r') as conf:
                 _md5 = md5(conf.read()).hexdigest()
                 if self.__files__[self.CONF] != _md5:
                     self.__files__[self.CONF] = _md5
-                    do_update = True
-        do_update = \
-            BankNorwegianParser.update(self.__files__, self.transactions)
-        do_update |= yAbankParser.update(self.__files__, self.transactions)
+                    self.stats.assign_labels(NULL, NULL)
 
-        # if do_update:
-        #     self.stats = Stats(self.transactions, self.labels, self.settings)
-        #     self.testobj = Month(2014,8,stats=stats)
+        BankNorwegianParser.update(self.__files__, self.stats)
+        yAbankParser.update(self.__files__, self.stats)
 
     def save(self):
         pickle.dump(self.__files__, open(self.__files_pickle__, 'w'))
-        pickle.dump(self.transactions, open(self.__tr_pickle__, 'w'))
+        pickle.dump(self.stats, open(self.__st_pickle__, 'w'))
 
     def print_cats(self):
         try:
@@ -119,10 +124,7 @@ if __name__ == "__main__":
         banan = Banan()
         banan.update()
         banan.save()
-        stats = Stats(transactions=banan.transactions, 
-                      labels=banan.labels,
-                      settings=banan.settings)
-        testobj = Month(2014,9,stats=stats)
+        testobj = Month(2014,9,stats=banan.stats)
         print testobj
         sys.exit(0)
 

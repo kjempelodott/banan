@@ -6,7 +6,7 @@ from transaction import Transaction
 class __Parser__(object):
 
     @classmethod
-    def update(cls, files_md5, transactions):
+    def update(cls, files_md5, stats):
         updated = False
         for f in os.listdir(cls.__dir__):
             try:
@@ -16,7 +16,7 @@ class __Parser__(object):
                 data = open(f, 'r').read()
                 _md5 = md5(data).hexdigest()
                 if not files_md5.has_key(f) or files_md5[f] != _md5:
-                    transactions.update(cls.parse(data))
+                    stats.update(cls.parse(data))
                     files_md5[f] = _md5
                     updated = True
                     print "Successfully parsed", f

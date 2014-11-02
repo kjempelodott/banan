@@ -7,7 +7,7 @@ def sorted_items(x):
 
 class Error(Exception):
 
-    def __init__(self):
+    def __init__(self, msg = ''):
         self.message = """ 
  __init__ got garbage arguments
 
@@ -24,7 +24,9 @@ class Error(Exception):
     settings     = dict {str, str        }
     OR
     stats        = Stats object
-""" % datetime.date.today().year
+ -----------------------------------------
+ %s
+""" % (datetime.date.today().year, msg)
 
     def __str__(self):
         return self.message
@@ -36,24 +38,45 @@ class Stats(object):
 
         try:
             self.__transactions__ = kwargs['transactions']
-            labels = kwargs['labels']
-            settings = kwargs['settings']
-            self.__labels__ = {settings['incomes_label']:[], 'annet':[]}
-            self.__lc__ = settings['local_currency']
-            self.__fcl__ = settings['foreign_currency_label']
-            self.__ignore__ = settings['cash_flow_ignore']
+            self.__labels__ = kwargs['labels']
+            self.__settings__ = kwargs['settings']
+            self.__lc__ = self.__settings__['local_currency']
+            self.__fcl__ = self.__settings__['foreign_currency_label']
+            self.__ignore__ = self.__settings__['cash_flow_ignore']
             if self.__fcl__: self.__labels__[self.__fcl__] = []
-            self.assign_labels(labels, settings)
+            self.__reset__()
+            self.assign_labels()
             self.balance = 0
-        except:
-            raise Error
+        except BaseException as e:
+            raise Error(e.message)
 
-    def assign_labels(self, labels, settings):
-        self.__labels__.update(dict((g,[]) for g in labels.keys()))
-        for tr in self.__transactions__.values():
+    def __reset__(self):
+        self.__ltr__ = dict((g,[]) for g in self.__labels__.keys())
+        self.__ltr__.update({self.__settings__['incomes_label'] : [], 
+                             'annet'                            : []})
+
+    def update(self, transactions):
+        self.assign_labels(transactions = transactions)
+
+    def assign_labels(self, **kwargs):
+
+        if 'labels' in kwargs:
+            self.__labels__ = kwargs['labels']
+        if 'settings' in kwargs:
+            self.__settings__ = kwargs['ssettings']
+        if 'transactions' in kwargs:
+            self.__transactions__.update(kwargs['transactions'])
+            transactions = kwargs['transactions']
+        else:
+            transactions = self.__transactions__
+        if ('labels' or 'settings') in kwargs:
+            self.__reset__()
+            transactions = self.__transactions__
+
+        for tr in transactions.values():
             tr.reset_labels()
             account = tr.account
-            for label, keywords in labels.iteritems():
+            for label, keywords in self.__labels__.iteritems():
                 for kw in keywords:
                     if re.sub(kw,'',account) != account:
                         tr.add_label(label)
@@ -64,7 +87,7 @@ class Stats(object):
                 if tr.currency != self.__lc__ and self.__fcl__:
                     tr.add_label(self.__fcl__)
                 elif tr.amount > 0:
-                    tr.add_label(settings['incomes_label'])
+                    tr.add_label(self.__settings__['incomes_label'])
                 else:
                     tr.add_label('annet')
             if len(tr.labels) > 1:
@@ -72,13 +95,13 @@ class Stats(object):
                     " %s\n   -> %s\n" % (tr.account, ', '.join(tr.labels)) + \
                     " will assign to",tr.labels[0]
             if tr.labels:
-                self.__labels__[tr.labels[0]].append(tr)
+                self.__ltr__[tr.labels[0]].append(tr)
 
     def get_transactions(self):
         return self.__transactions__
     transactions = property(get_transactions, None, None)
     def get_labels(self):
-        return self.__labels__
+        return self.__ltr__
     labels = property(get_labels, None, None)
 
     def __str__(self):
@@ -116,7 +139,7 @@ class Year(Stats, object):
             try:
                 st = kwargs['stats']
                 self.__transactions__ = st.transactions
-                self.__labels__ = st.labels
+                self.__ltr__ = st.labels
                 self.__lc__ = st.__lc__
                 self.__fcl__ = st.__fcl__
                 self.balance = 0
@@ -131,7 +154,7 @@ class Year(Stats, object):
         def f(tr): return tr.get_date_object().year == int(self.year)
         self.__transactions__ = dict(zip(self.transactions.keys(), filter(f, self.transactions.values())))
         if filter_labels:
-            self.__labels__ = dict((lb,filter(f,trs)) for (lb,trs) in self.labels.iteritems())
+            self.__ltr__ = dict((lb,filter(f,trs)) for (lb,trs) in self.labels.iteritems())
 
             
 class Month(Year, object):
@@ -158,4 +181,4 @@ class Month(Year, object):
         def f(tr): return tr.get_date_object().month == self.month
         self.__transactions__ = dict(zip(self.transactions.keys(), filter(f, self.transactions.values())))
         if filter_labels:
-            self.__labels__ = dict((lb,filter(f,trs)) for (lb,trs) in self.labels.iteritems())
+            self.__ltr__ = dict((lb,filter(f,trs)) for (lb,trs) in self.labels.iteritems())
