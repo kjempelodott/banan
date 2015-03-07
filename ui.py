@@ -12,7 +12,7 @@ class Dict(dict):
             return super(Dict, self).__getitem__(key)
         return False
 
-class Menu():
+class Menu(object):
     """
     Class for holding the window, panel and a dictionary of actions
     for a menu. The menu object can be used as a dicitionary to
@@ -26,25 +26,29 @@ class Menu():
 
     ``banankake_return = menu['a']``
 
-    :param win: menu window
-    :type win: :py:obj:`curses.window` 
+    :param menu_win: menu window
+    :type menu_win: :py:obj:`curses.window` 
     """
-    def __init__(self, win = None):
-        self.window = win
-        if win:
-            self.panel = curses.panel.new_panel(win)
+    def __init__(self, menu_win, menu = True):
+        self.window = None
+        if menu:
+            self.window = menu_win
+            self.panel = curses.panel.new_panel(menu_win)
             self.panel.hide()
             panel.update_panels()
         self.actions = Dict()
+
     def show(self):
         """
         Hide the menu panel by calling :py:meth:`curses.panel.Panel.hide()`.
         """
         if not self.window:
-            return
+            return False
         self.panel.show()
         panel.update_panels()
         curses.doupdate()
+        return True
+
     def hide(self):
         """
         Hide the menu panel by calling :py:meth:`curses.panel.Panel.hide()`.
@@ -54,31 +58,40 @@ class Menu():
         self.panel.hide()
         panel.update_panels()
         curses.doupdate()
+
     def __getitem__(self, key):
-        action = self.actions[key]
-        if action:
+        try:
+            action = self.actions[key]
             func = action[0]
             args = action[1:]
             func(*args)
-            panel.update_panels()
+            #panel.update_panels()
+        except:
+            pass
+
+    def __contains__(self, key):
+        return key in self.actions
+
     def __setitem__(self, key, action):
         try:
             assert(type(action) == list)
         except AssertionError: # Function without arguments
+            if not action: # None cannot be called
+                def _none(): pass
+                action = _none
             action = [action]
         assert(str(type(action[0])) in ("<type 'function'>",
-                                        "<type 'instancemethod'>",
-                                        "<type 'NoneType'>"))
+                                        "<type 'instancemethod'>"))
         self.actions[key] = action
 
-    @staticmethod
-    def add_menu(win, title, xpos, width, items = None):
+    @classmethod
+    def add_menu(cls, main_win, title, xpos, width, items = None):
         """
-        Add a menu to the window ``win``. \
+        Add a menu to the window ``main_win``. \
         Items in the menu are specified in ``items``.
 
-        :param win: window
-        :type win: :py:obj:`curses.window` 
+        :param main_win: window
+        :type main_win: :py:obj:`curses.window` 
         :param str title: title of menu
         :param int xpos: position
         :param int width: width of menu
@@ -96,29 +109,55 @@ class Menu():
                   \t ``items = [function, *args]``
 
         """
-        HEIGH, WIDTH = win.getmaxyx()
+        HEIGHT, WIDTH = main_win.getmaxyx()
         assert((type(title) == str) and len(title))
         assert((type(xpos) == int) and xpos >= 0 and xpos <= WIDTH)
-        win.addstr(1, xpos, title[0], curses.A_BOLD)
-        win.addstr(1, xpos+1, title[1:])
+        main_win.addstr(1, xpos, title[0], curses.A_BOLD)
+        main_win.addstr(1, xpos+1, title[1:])
         n = len(items) if (type(items) == tuple and items) else 0
         menu = None
         if n:
-            win = curses.newwin(n+2, width, 2, xpos)
-            win.border(0)
+            menu_win = curses.newwin(n+2, width, 2, xpos)
+            menu_win.border(0)
             i = 0
             for (name, action) in items:
-                win.addstr(1+i, 1, name[0], curses.A_BOLD)
-                win.addstr(1+i, 2, name[1:])
+                menu_win.addstr(1+i, 1, name[0], curses.A_BOLD)
+                menu_win.addstr(1+i, 2, name[1:])
                 i += 1
-            menu = Menu(win)
+            menu = Menu(menu_win)
             menu[name[0].lower()] = action
         else:
-            menu = Menu()
-            menu[title[0].lower()] = items
+            if cls == Prompt:
+                menu = Prompt(main_win, title)
+            else:
+                menu = Menu(main_win, False)
+            if items:
+                menu[title[0].lower()] = items
         curses.doupdate()
         return menu
 
+
+class Prompt(Menu, object):
+
+    def __init__(self, main_win, msg):
+        HEIGHT, WIDTH = main_win.getmaxyx()
+        self.window = curses.newwin(3,20,10,40)
+        self.window.border(0)
+        self.window.addstr(1,1,msg + ":")
+        self.panel = curses.panel.new_panel(self.window)
+        self.panel.hide()
+        panel.update_panels()
+        self.actions = Dict()
+
+    def show(self):
+        return super(Prompt, self).show()
+        # get input
+        # return input
+
+    def hide(self):
+        super(Prompt, self).hide()
+        # get input
+        # return input
         
 def init(h, w):
     # Initialize curses
@@ -136,17 +175,16 @@ def init(h, w):
     return stdscr
 
 
-def clean_up(stdscr, *args):
+def clean_up(stdscr, ex = True):
     """
     Restore terminal to sane state.
 
     :param stdscr: main window
     :type stdscr: :py:obj:`curses.window`
-    :param functions args: extra actions (in order)
     """
     stdscr.keypad(0)
     curses.nocbreak()
     curses.endwin()
     curses.echo()
-    for arg in args:
-        arg()
+    if ex:
+        exit(0)
