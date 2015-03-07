@@ -13,7 +13,7 @@ class __Parser__(object):
                 if os.path.splitext(f)[1] != cls.__fext__:
                     continue
                 f = cls.__dir__ + f
-                data = open(f, 'r').read()
+                data = open(f, 'rb').read()
                 _md5 = md5(data).hexdigest()
                 if not files_md5.has_key(f) or files_md5[f] != _md5:
                     stats.update(cls.parse(data))
@@ -22,10 +22,8 @@ class __Parser__(object):
                     print "Successfully parsed", f
             except IOError: 
                 print "Could not open file", f
-            except AttributeError:
-                print "Not implemented! (private class __Parser__)"
             except BaseException as e:
-                print "Exception", f, ':\n', e.message
+                print "Exception", f + ':\n', e.message
         return updated
             
 class yAbankParser(__Parser__, object):
@@ -61,7 +59,68 @@ class yAbankParser(__Parser__, object):
         return transactions
 
 
-class BankNorwegianParser(__Parser__, HTMLParser, object):
+class BankNorwegianPDFParser(__Parser__, HTMLParser, object):
+
+    CHARSET = 'iso-8859-1'
+    __fext__ = '.pdf'
+    __dir__ = './banknorwegian/'
+    __re__ = re.compile(r'^(?P<date>\d\d\.\d\d\.\d{4,4})' \
+                        '(?P<account>.+)\d{6,6}\*{6,6}\d{4,4}' \
+                        '(?P<amount>\d+,\d+)' \
+                        '(?P<currency>[A-Z]+)(\d\.\d{4,4})?' \
+                        '(?P<amount_local>\d+,\d+)$')
+
+    def __init__(self):
+        self.is_tr = False
+        super(BankNorwegianPDFParser, self).__init__()
+        self.transactions = {}
+
+    @staticmethod
+    def parse(data):
+        inst = BankNorwegianPDFParser()
+        inst.feed(inst.convert(data))
+        return inst.transactions
+
+    @staticmethod
+    def convert(data):
+        from pdfminer.pdfinterp import PDFResourceManager, process_pdf
+        from pdfminer.converter import HTMLConverter
+        from StringIO import StringIO
+        pdfdata = StringIO(data)
+        htmldata = StringIO()
+        man = PDFResourceManager()
+        conv = HTMLConverter(man, htmldata)
+        process_pdf(man, conv, pdfdata)
+        data = htmldata.seek(0) or htmldata.read()
+        return data
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "span":
+            self.is_tr = False
+
+    def handle_endtag(self, tag):
+        if tag == "span":
+            self.is_tr = True
+
+    def handle_data(self, data):
+        if self.is_tr:
+            data = data.strip()
+            if not data:
+                return
+            match = self.__re__.match(data)
+            if match:
+                gr = match.groupdict()
+                tr = Transaction()
+                tr.set_account(gr["account"])
+                tr.set_amount(gr["amount"],-1)
+                tr.set_amount_local(gr["amount_local"],-1)
+                tr.set_currency(gr["currency"])
+                dd, mm, yyyy = gr["date"].split('.')
+                tr.set_date(datetime.date(int(yyyy), int(mm), int(dd)))
+                self.transactions[md5(str(tr)).hexdigest()] = tr
+
+
+class BankNorwegianHTMLParser(__Parser__, HTMLParser, object):
 
     CHARSET = 'iso-8859-1'
     __fext__ = '.html'
@@ -76,7 +135,7 @@ class BankNorwegianParser(__Parser__, HTMLParser, object):
         self.AMOUNTLOCAL =  64
         self.RETURN      = 128
 
-        super(BankNorwegianParser, self).__init__()
+        super(BankNorwegianHTMLParser, self).__init__()
         self.is_trtable = False
         self.is_tr = False
         self.tr = None
@@ -85,7 +144,7 @@ class BankNorwegianParser(__Parser__, HTMLParser, object):
 
     @staticmethod
     def parse(data):
-        inst = BankNorwegianParser()
+        inst = BankNorwegianHTMLParser()
         inst.feed(data)
         return inst.transactions
 
@@ -148,3 +207,41 @@ class BankNorwegianParser(__Parser__, HTMLParser, object):
             # Set amount in local currency
             elif self.next & self.AMOUNTLOCAL:
                 self.tr.set_amount_local(data,-1)
+
+
+"""
+A   <kjop>  [kode] [varenavn] [antall] [pris] [nest siste tall: 2 (intern), 1 (ekstern)] *[tull]
+J   <retur>  ...
+B 30 SIGN.ANNUL <annulert>
+
+R   <sum>
+x   <mva>
+ <  <slutt: tid og sum>
+"""
+
+class ZRapport(object):
+
+    @staticmethod
+    def parse(data):
+        tickets = {}
+        this = None
+        for line in data.split('\n'):
+            if not line:
+                continue
+            if line[0:2] in ['A ','J ']:
+                try:
+                    name = line[7:28].strip()
+                    n = int(line[28:32])
+                    price = float(line[32:43])
+                    is_intern = bool(int(line[54]) - 1)
+                    this = md5(line).hexdigest()
+                    tickets[this] = [name, n, price, is_intern]
+                except Exception as e:
+                    print "Failed to parse:", line
+                    continue
+            elif line[0:17] == "B   30 SIGN.ANNUL":
+                del tickets[this]
+            elif line[0:2] == " <":
+                this = None
+        return tickets
+
