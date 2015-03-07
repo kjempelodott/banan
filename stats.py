@@ -52,7 +52,8 @@ class Stats(object):
 
     def __reset__(self):
         self.__ltr__ = dict((g,[]) for g in self.__labels__.keys())
-        self.__ltr__.update({self.__settings__['incomes_label'] : [], 
+        self.__ltr__.update({self.__settings__['incomes_label'] : [],
+                             self.__fcl__                       : [],
                              'annet'                            : []})
 
     def update(self, transactions):
@@ -63,7 +64,7 @@ class Stats(object):
         if 'labels' in kwargs:
             self.__labels__ = kwargs['labels']
         if 'settings' in kwargs:
-            self.__settings__ = kwargs['ssettings']
+            self.__settings__ = kwargs['settings']
         if 'transactions' in kwargs:
             self.__transactions__.update(kwargs['transactions'])
             transactions = kwargs['transactions']
@@ -79,9 +80,9 @@ class Stats(object):
             for label, keywords in self.__labels__.iteritems():
                 for kw in keywords:
                     if re.sub(kw,'',account) != account:
-                        tr.add_label(label)
+                        tr.add_label(label, kw)
                         if label in self.__ignore__:
-                            tr.cash_flow_ignore = True
+                            tr.set_cash_flow_ignore(True)
                         break
             if not tr.labels:
                 if tr.currency != self.__lc__ and self.__fcl__:
@@ -90,12 +91,8 @@ class Stats(object):
                     tr.add_label(self.__settings__['incomes_label'])
                 else:
                     tr.add_label('annet')
-            if len(tr.labels) > 1:
-                print "WARNING: transaction matches more than one label\n" + \
-                    " %s\n   -> %s\n" % (tr.account, ', '.join(tr.labels)) + \
-                    " will assign to",tr.labels[0]
             if tr.labels:
-                self.__ltr__[tr.labels[0]].append(tr)
+                self.__ltr__[tr.get_best_match_label()].append(tr)
 
     def get_transactions(self):
         return self.__transactions__
@@ -109,15 +106,19 @@ class Stats(object):
             return 'NO TRANSACTIONS'
         if not self.balance:
             def f(tr): return not tr.cash_flow_ignore
-            self.balance = sum(tr.amount_local for tr in filter(f, self.transactions.values()))
-
+            self.balance = sum(tr.amount_local for \
+                               tr in filter(f, self.transactions.values()))
+                
         strlen = 5+len(str(self.__transactions__.values()[0]))+len(self.__lc__)
         sumstr = '_'*strlen + '\n' + ' '*(strlen-14) + '%10.2f %s\n'
 
-        ret = '\n'.join("[%s]\n   %s\n%s" % (lb,
-                                             "\n   ".join("%s %s" % (str(tr), self.__lc__) for tr in sorted(trs)), 
-                                             sumstr % (sum(tr.amount_local for tr in trs), self.__lc__)) 
+        ret = '\n'.join("[%s]\n   %s\n%s" % 
+                        (lb, "\n   ".join("%s %s" %
+                            (str(tr), self.__lc__) for tr in sorted(trs)), \
+                         sumstr % (sum(tr.amount_local for tr in trs), 
+                                   self.__lc__)) 
                         for (lb,trs) in sorted_items(self.labels) if trs)
+                
         ret+= (sumstr % (self.balance, self.__lc__)).replace('_',"=")
         return ret
 
@@ -152,9 +153,11 @@ class Year(Stats, object):
 
     def __filter_year__(self, filter_labels=True):
         def f(tr): return tr.get_date_object().year == int(self.year)
-        self.__transactions__ = dict(zip(self.transactions.keys(), filter(f, self.transactions.values())))
+        self.__transactions__ = dict(zip(self.transactions.keys(), 
+                                         filter(f, self.transactions.values())))
         if filter_labels:
-            self.__ltr__ = dict((lb,filter(f,trs)) for (lb,trs) in self.labels.iteritems())
+            self.__ltr__ = dict((lb,filter(f,trs)) 
+                                for (lb,trs) in self.labels.iteritems())
 
             
 class Month(Year, object):
@@ -179,6 +182,8 @@ class Month(Year, object):
 
     def __filter_month__(self, filter_labels=True):
         def f(tr): return tr.get_date_object().month == self.month
-        self.__transactions__ = dict(zip(self.transactions.keys(), filter(f, self.transactions.values())))
+        self.__transactions__ = dict(zip(self.transactions.keys(), 
+                                         filter(f, self.transactions.values())))
         if filter_labels:
-            self.__ltr__ = dict((lb,filter(f,trs)) for (lb,trs) in self.labels.iteritems())
+            self.__ltr__ = dict((lb,filter(f,trs)) 
+                                for (lb,trs) in self.labels.iteritems())
