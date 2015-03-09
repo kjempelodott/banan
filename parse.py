@@ -22,19 +22,92 @@ class __Parser__(object):
                     print "Successfully parsed", f
             except IOError: 
                 print "Could not open file", f
-            except BaseException as e:
-                print "Exception", f + ':\n', e.message
+            # except BaseException as e:
+            #     print "Exception", f + ':\n  ', e.message
         return updated
+
+
+class yAbankPDFParser(__Parser__, object):
+
+    CHARSET = 'iso-8859-1'
+    __fext__ = '.pdf'
+    __dir__ = './yabank/'
+    # TODO: does not match "innbetaling m/kid 4.799,99 ...."
+    __re_c__ = re.compile(r'(?P<date>\d\d\.\d\d)' \
+                           '(?P<account>.{1,40}?)\d\d\.\d\d' \
+                           '(?P<amount>[\.\d]+,\d\d)')
+    __re_d__ = re.compile(r'(?P<account>.{1,40}?)' \
+                          '(?P<date>\d\d\.\d\d)' \
+                          '(?P<amount>[\.\d]+,\d\d)')
+
+    @staticmethod
+    def parse(data):
+        data = yAbankPDFParser.convert(data).split("Side:")[1:]
+        try:
+            yyyy = re.search("Saldo pr. \d\d\.\d\d\.(\d\d\d\d)", data[0])[0]
+        except:
+            print "WARNING: Failed to extract year from PDF"
+            yyyy = datetime.datetime.now().year
+
+        transactions = {}
+        tr, pos, match, first, last = 5*[0]
+        credit, debit = yAbankPDFParser.__re_c__, yAbankPDFParser.__re_d__
+        def get_match(page):
+            match = [credit.search(page, pos), debit.search(page, pos)]
+            if match[0] and match[1]:
+                return match[match[0].end() > match[1].end()]
+            else:
+                return match.remove(None) or match[0]
+        for n, page in enumerate(data[1:]):
+            match = get_match(page)
+            while match:
+                try:
+                    tr = Transaction()
+                    gr = match.groupdict()
+                    sign = (1,-1)[match == credit]
+                    tr.set_account(gr['account'])
+                    tr.set_amount_local(gr['amount'],sign)
+                    dd, mm = gr['date'].split('.')
+                    tr.set_date(datetime.date(int(yyyy), int(mm), int(dd)))
+                    id = md5(str(tr)).hexdigest()
+                    transactions[id] = tr
+                    if not first:
+                        first = id
+                    last = id
+                    print tr
+                except:
+                    pass
+                pos = match.end()
+                match = get_match(page)
+            # End of page, set pos to 0
+            pos = 0
+        del transactions[first], transactions[last]
+        return transactions
+
+    @staticmethod
+    def convert(data):
+        from pdfminer.pdfinterp import PDFResourceManager, process_pdf
+        from pdfminer.converter import TextConverter
+        from StringIO import StringIO
+        pdfdata = StringIO(data)
+        htmldata = StringIO()
+        man = PDFResourceManager()
+        conv = TextConverter(man, htmldata)
+        process_pdf(man, conv, pdfdata)
+        data = htmldata.seek(0) or htmldata.read()
+        return data
+
             
-class yAbankParser(__Parser__, object):
+class yAbankCSVParser(__Parser__, object):
 
     CHARSET = 'iso-8859-10'
     __fext__ = '.csv'
     __dir__ = './yabank/'
+    __nl__ = re.compile(r"VISA .+ \d\d.\d\d (\D+) (\d+,\d\d) .+")
 
     @staticmethod
     def parse(data):
-        data = data.decode(yAbankParser.CHARSET).encode('utf-8')
+        data = data.decode(yAbankCSVParser.CHARSET).encode('utf-8')
         transactions = {}
         for line in data.split('\n'):
             if not line:
@@ -44,8 +117,7 @@ class yAbankParser(__Parser__, object):
             account = line[2]
             amount_local = amount = line[3]
             currency = 'NOK'
-            non_local = \
-                re.match("VISA .+ \d\d.\d\d (\D+) (\d+,\d\d) .+", account)
+            non_local = yAbankCSVParser.__nl__.match(account)
             if non_local:
                 currency, amount = non_local.groups()
             tr = Transaction()
@@ -66,9 +138,9 @@ class BankNorwegianPDFParser(__Parser__, HTMLParser, object):
     __dir__ = './banknorwegian/'
     __re__ = re.compile(r'^(?P<date>\d\d\.\d\d\.\d{4,4})' \
                         '(?P<account>.+)\d{6,6}\*{6,6}\d{4,4}' \
-                        '(?P<amount>\d+,\d+)' \
+                        '(?P<amount>[\.\d]+,\d\d)' \
                         '(?P<currency>[A-Z]+)(\d\.\d{4,4})?' \
-                        '(?P<amount_local>\d+,\d+)$')
+                        '(?P<amount_local>[\.\d]+,\d\d)$')
 
     def __init__(self):
         self.is_tr = False
