@@ -3,62 +3,64 @@
 import os, sys, pickle, traceback, curses
 from curses import panel
 from hashlib import md5
-from parse import yAbankParser, BankNorwegianParser
-from stats import Stats, Year, Month
+
 from config import configure
 import ui
-from ui import Dict, Menu
+from ui import Dict, Menu, Prompt
+from parse import *
+from stats import *
 
+LOG = open("debug.log", "w")
 FUCK_CURSES=True
 
 class Banan:
 
     def __init__(self):
-        self.CONF = 'labels.conf'
-        self.__HAS_CATS__ = False
-        self.labels, self.settings = configure()
+        self._CONF = './labels.conf'
+        self._FILES = './.files.pickle'
+        self._STATS = './.stats.pickle'
+        self.labels, self.settings = configure(self._CONF)
         self.load()
         self.cat_pad = None
         self.cat_coord = ()
 
     def load(self):
-        self.__files__ = {}
-        self.__files_pickle__ = './.files_md5.pickle'
-        self.__st_pickle__ = './.stats.pickle'
-        if os.path.exists(self.__files_pickle__):
-            self.__files__ = \
-                pickle.loads(open(self.__files_pickle__, 'r').read())
+        self._files = {}
+        if os.path.exists(self._FILES):
+            self._files = pickle.loads(open(self._FILES, 'r').read())
 
-            if os.path.exists(self.__st_pickle__):
-                self.stats = \
-                    pickle.loads(open(self.__st_pickle__, 'r').read())
+            if os.path.exists(self._STATS):
+                self.stats = pickle.loads(open(self._STATS, 'r').read())
                 return
 
         # Something is wrong, reset everything
-        for f in (self.__files_pickle__, self.__st_pickle__):
+        for f in (self._FILES, self._STATS):
             try:
                 os.remove(f)
             except: 
                 pass
+
+        self._files = {}
         self.stats = Stats(labels = self.labels,
                            settings = self.settings,
                            transactions = {})
         self.update()
-            
+    
     def update(self):
-        if self.__files__.has_key(self.CONF):
-            with open(self.CONF, 'r') as conf:
-                _md5 = md5(conf.read()).hexdigest()
-                if self.__files__[self.CONF] != _md5:
-                    self.__files__[self.CONF] = _md5
-                    self.stats.assign_labels(NULL, NULL)
+        with open(self._CONF, 'r') as conf:
+            _md5 = md5(conf.read()).hexdigest()
+            if self._CONF in self._files and self._files[self._CONF] != md5:
+                # Config has changed, replace labels
+                self._files[self._CONF] = _md5
+                self.stats.assign_labels()
 
-        BankNorwegianParser.update(self.__files__, self.stats)
-        yAbankParser.update(self.__files__, self.stats)
+        classes = [BankNorwegianHTMLParser, yAbankCSVParser, yAbankPDFParser]
+        for cls in classes:
+            cls.update(self._files, self.stats)
 
     def save(self):
-        pickle.dump(self.__files__, open(self.__files_pickle__, 'w'))
-        pickle.dump(self.stats, open(self.__st_pickle__, 'w'))
+        pickle.dump(self._files, open(self._FILES, 'w'))
+        pickle.dump(self.stats, open(self._STATS, 'w'))
 
     def print_cats(self):
         try:
@@ -76,13 +78,6 @@ class Banan:
         self.cat_pad = pad
         self.print_cats()
     
-
-def month_prompt(win):
-    pass
-
-def year_prompt(win):
-    pass
-
 def show_help(win):
     pass
     
@@ -95,28 +90,34 @@ def main_loop(menus, stdscr, b):
             continue
         # letter
         c = chr(c).lower()
+        LOG.write("stdin got '%s'\n" % c)
+        stdscr.addstr(14,50,c)
+        # menu is open -> do action
+        if menu_open and c in menus[menu_open]:
+            LOG.write(" pop-up menu '%s' open\n" \
+                      " -> do action '%s'\n" % (menu_open, c))
+            menus[menu_open][c]()
+            menus[menu_open].hide()
+            menu_open = None
         # display a menu
-        if menus[c]:
+        elif menus[c]:
+            LOG.write(" open menu '%s'\n" % c)
             # hide open menu
             if menu_open:
+                LOG.write(" hide menu '%s'\n" % menu_open)
                 menus[menu_open].hide()
-                b.print_cats()
                 if menu_open == c:
                     menu_open = None
                     continue
             # show menu
-            menus[c].show()
+            if not menus[c].show():
+                LOG.write(" -> not a pop-up menu, doing action '%s'\n" 
+                          "    %s\n" % (c, str(menus[c][c])))
+                # not a pop-up menu ... do action
+                menus[c][c]()
+                continue
+            # this is a pop-up menu
             menu_open = c
-            continue
-        # menu is open -> do action
-        if menu_open and menus[menu_open][c]:
-            menus[menu_open][c]()
-            menus[menu_open].hide()
-            menu_open = None
-            continue
-        # exit
-        if c == "e":
-            return
 
 
 if __name__ == "__main__":
@@ -124,8 +125,7 @@ if __name__ == "__main__":
         banan = Banan()
         banan.update()
         banan.save()
-        testobj = Month(2014,9,stats=banan.stats)
-        print testobj
+        print banan.stats
         sys.exit(0)
 
     try:
@@ -143,63 +143,26 @@ if __name__ == "__main__":
         cat_pad.border(0)
 
         banan = Banan()
-
         menus = Dict()
         menus["f"] = Menu.add_menu(stdscr, "File" , MENU0, MENUW,
                                    (("Update",banan.update),
                                     ("Save",banan.save)))
         menus["p"] = Menu.add_menu(stdscr, "Plot" , MENU0 + MENUW, MENUW,
-                                   (("Data" ,None),
-                                    ("Average"  ,None)))
-        Menu.add_menu(stdscr, "Month", MENU0 + 2*MENUW, MENUW, 
-                      [month_prompt, stdscr])
-        Menu.add_menu(stdscr, "Year", MENU0 + 3*MENUW, MENUW, 
-                      [year_prompt, stdscr])
-        Menu.add_menu(stdscr, "Help", MENU0 + 4*MENUW, MENUW,
-                      [show_help, stdscr])
-        Menu.add_menu(stdscr, "Exit", MENU0 + 5*MENUW, MENUW, 
-                      [ui.clean_up, stdscr, exit])
+                                   (("Data",    None),
+                                    ("Average", None)))
+        menus["m"] = Prompt.add_menu(stdscr, "Month", MENU0 + 2*MENUW, MENUW, None)
+        menus["y"] = Prompt.add_menu(stdscr, "Year", MENU0 + 3*MENUW, MENUW, None)
+        # Menu.add_menu(stdscr, "Help", MENU0 + 4*MENUW, MENUW,
+        #               [show_help, stdscr])
+        menus["e"] = Menu.add_menu(stdscr, "Exit", MENU0 + 5*MENUW, MENUW, 
+                                   [ui.clean_up, stdscr])
 
-        b.set_cat_pad(cat_pad, HEIGHT)
-        main_loop(menus, stdscr, b)
+        banan.set_cat_pad(cat_pad, HEIGHT)
+        main_loop(menus, stdscr, banan)
     except:
-        ui.clean_up(stdscr)
+        ui.clean_up(stdscr, False)
         print traceback.format_exc()
     else:
         ui.clean_up(stdscr)
-
-
-
-
-
-
-
-
-# def main(stdscr):
-#     while 1:
-#         c = stdscr.getch()
-
-# if __name__ == "__main__":
-#     try:
-#         # Initialize curses
-#         stdscr = curses.initscr()
-#         # Turn off echoing of keys, and enter cbreak mode,
-#         # where no buffering is performed on keyboard input
-#         curses.noecho()
-#         curses.cbreak()
-
-#         # In keypad mode, escape sequences for special keys
-#         # (like the cursor keys) will be interpreted and
-#         # a special value like curses.KEY_LEFT will be returned
-#         stdscr.keypad(1)
-#         main(stdscr)                    # Enter the main loop
-#     except:
-#         pass
-#     finally:
-#         # Restore terminal to sane state
-#         stdscr.keypad(0)
-#         curses.echo()
-#         curses.nocbreak()
-#         curses.endwin()
-
-
+    finally:
+        LOG.close()

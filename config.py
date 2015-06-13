@@ -1,23 +1,25 @@
 import re, locale
+from logger import *
+
 
 def configure(conf = 'labels.conf'):
     f = open(conf, 'r')
     coding = 'utf-8'
     try:
-        coding = \
-            re.match('# -\*- coding: ([-\w]+) -\*-', f.readline()).groups()[0]
+        coding = re.match('# -\*- coding: ([-\w]+) -\*-', f.readline()).groups()[0]
     except:
-        print "WARNING: failed to read coding of config file, assuming utf-8"
+        WARN('failed to read config file encoding .. assuming utf-8')
         f.seek(0,0)
     labels = {}
 
-    settings = {'local_currency':None,
-                'foreign_currency_label':None,
-                'incomes_label':'incomes',
-                'cash_flow_ignore':[]}
+    settings = {'local_currency'         : None,
+                'foreign_currency_label' : None,
+                'incomes_label'          : 'incomes',
+                'other_label'            : 'other',
+                'cash_flow_ignore'       : []}
 
     section = None
-    for line in f.read().decode('utf-8').encode('utf-8').split('\n'):
+    for line in f.read().decode(coding).encode('utf-8').split('\n'):
         if not line or line[0] == '#':
             continue                
         lm = re.match('^\[(.+)\]$', line)
@@ -33,18 +35,18 @@ def configure(conf = 'labels.conf'):
         if sm:
             var, val = [x.strip() for x in sm.groups()]
             if not settings.has_key(var):
-                print "WARNING: setting '" + var + "' not recognized, skipping"
+                WARN('setting \'%s\' not recognized .. skipping' % var)
                 continue
             settings[var] = val
             if var == 'cash_flow_ignore':
                 settings[var] = [v.strip() for v in val.split(',')]
             continue
-        print "Not able to parse line '" + line + "' in config"
+        WARN('Not able to parse line \'%s\' in config' % line)
 
     if not settings['local_currency'] and settings['foreign_currency_label']:
-        print "WARNING: guessing local_currency from env"
+        INFO('guessing local_currency from env')
         locale.setlocale(locale.LC_MONETARY, '')
         settings['local_currency'] = locale.localeconv()['int_curr_symbol']
-        print "INFO: found '" + settings['local_currency'] + "'"
+        INFO('found \'%s\'' % settings['local_currency'])
         
     return labels, settings
