@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import re, os, datetime
 from HTMLParser import HTMLParser
-from hashlib import md5
 from transaction import Transaction
 from logger import *
+from hashlib import md5
 
 class _Parser(object):
 
@@ -43,7 +43,7 @@ class yAbankPDFParser(_Parser, object):
             yyyy = int(re.search("Saldo pr\. \d\d\.\d\d\.(\d\d\d\d)kr", data[0]).groups()[0])
         except:
             WARNING('Failed to extract year from PDF')
-            yyyy = datetime.datetime.now().year
+            yyyy = datetime.date.now().year
 
         transactions = {}
         pos, match = 0, 0
@@ -57,7 +57,8 @@ class yAbankPDFParser(_Parser, object):
                 return match.remove(None) or match[0]
 
         transactions = {}
-        for n, page in enumerate(data[1:]):
+        _last = None
+        for page in data[1:]:
             match = get_match(page)
             while match:
                 gr = match.groupdict()
@@ -73,14 +74,16 @@ class yAbankPDFParser(_Parser, object):
                 transaction.set_amount(gr['amount'], sign)
                 transaction.amount_local = transaction.amount
                 transaction.currency = 'NOK'
-                transaction.date = datetime.datetime(int(yyyy), int(mm), int(dd))
-                transactions[md5(str(transaction)).hexdigest()] = transaction
-
+                transaction.date = datetime.date(int(yyyy), int(mm), int(dd))
+                _last = hash(transaction)
+                transactions[_last] = transaction
                 pos = match.end()
                 match = get_match(page)
             # End of page, set pos to 0
             pos = 0
 
+        # Remove last entry, which is the sum
+        del transactions[_last]
         return transactions
 
     @staticmethod
@@ -127,91 +130,42 @@ class yAbankCSVParser(_Parser, object):
             transaction.set_amount(amount)
             transaction.amount_local = transaction.amount
             transaction.currency = currency
-            transaction.date = datetime.datetime(int(yyyy), int(mm), int(dd))
-            transactions[md5(str(transaction)).hexdigest()] = transaction
+            transaction.date = datetime.date(int(yyyy), int(mm), int(dd))
+            transactions[hash(transaction)] = transaction
 
         return transactions
 
 
-class BankNorwegianHTMLParser(_Parser, HTMLParser, object):
+class BankNorwegianCSVParser(_Parser, object):
 
-    CHARSET = 'iso-8859-1'
-    FILEEXT = '.html'
+    CHARSET = 'utf-8'
+    FILEEXT = '.csv'
     DIR     = './banknorwegian/'
-
-    def __init__(self):
-
-        self._DATE        =   1
-        self._ACCOUNT     =   2
-        self._AMOUNT      =   8
-        self._CURRENCY    =  16
-
-        super(BankNorwegianHTMLParser, self).__init__()
-        self.transactions = {}
-        self._in_table = False
-        self._in_tr = False
-        self._data = 0
-        self._this = {}
 
     @staticmethod
     def parse(data):
-        data = data.replace('&nbsp;','')
-        inst = BankNorwegianHTMLParser()
-        inst.feed(data)
-        return inst.transactions
+        data = data.decode(BankNorwegianCSVParser.CHARSET).encode('utf-8')
+        transactions = {}
+        for line in data.split('\n')[1:]:
+            if not line:
+                continue
+            line = line.split(';')
+            date = line[0]
+            mm, dd, yyyy = date.split('/')
+            account = line[1]
+            amount = line[3]
+            currency = line[5]
+            amount_local = line[6]          
 
-    def handle_starttag(self, tag, attrs):
-        self._data = 0
-        # New transaction
-        if self._in_table and tag == 'tr' and ('class', '') in attrs:
-            self._in_tr = True
-            self._transaction = Transaction()
-        # Data
-        elif self._in_tr:
-            if tag == 'td':
-                if ('class', 'date') in attrs:
-                    self._data = self._DATE
-                elif ('class', 'amount') in attrs:
-                    self._data = self._AMOUNT
-                elif ('data-bind', "text: isCurrencyTx() ? currencyAmountText: ''") in attrs:
-                    self._data = self._CURRENCY
-            elif tag == 'div' and ('data-bind', 'text: transactionMainText') in attrs:
-                    self._data = self._ACCOUNT
-        # Start of a transaction table
-        elif tag == 'table' and attrs == [('class', 'table table-hover transactions')]:
-            self._in_table = True
+            transaction = Transaction()
+            transaction.account = account
+            transaction.set_amount(amount)
+            transaction.set_amount_local(amount_local)
+            transaction.currency = currency
+            transaction.date = datetime.date(int(yyyy), int(mm), int(dd))
+            transactions[hash(transaction)] = transaction
 
-    def handle_endtag(self, tag):
-        # End of transaction
-        if  tag == 'tr' and self._in_tr:
-            self.transactions[md5(str(self._transaction)).hexdigest()] = self._transaction
-            self._in_tr = False
-        self._data = 0
-
-    def handle_data(self, data):
-        if not self._data:
-            return
-
-        data = data.decode(BankNorwegianHTMLParser.CHARSET).encode('utf-8')
-        data = data.strip()
-            
-        # Set date
-        if self._data & self._DATE:
-            dd, mm, yy = data.split('.')
-            self._transaction.date = datetime.datetime(int('20' + yy), int(mm), int(dd))
-        # Set account
-        elif self._data & self._ACCOUNT:
-            self._transaction.account = data
-        # Set amount
-        elif self._data & self._AMOUNT:
-            self._transaction.currency = 'NOK'
-            self._transaction.set_amount(data, -1)
-            self._transaction.amount_local = self._transaction.amount
-        # Set currency
-        elif self._data & self._CURRENCY:
-            amount, currency = data.split()
-            self._transaction.currency = currency
-            self._transaction.set_amount(amount, -1)
+        return transactions
 
 
 """
