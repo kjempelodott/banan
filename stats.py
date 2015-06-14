@@ -11,7 +11,7 @@ class Stats(object):
 
     def __init__(self, **kwargs):
 
-        self.transactions = kwargs['transactions'].values()
+        self.transactions = kwargs['transactions']
         self.labels       = kwargs['labels']
         self._settings    = kwargs['settings']
 
@@ -35,7 +35,7 @@ class Stats(object):
                           self._other_lbl : []})
 
     def update(self, transactions):
-        self.assign_labels(transactions = transactions.values())
+        self.assign_labels(transactions = transactions)
 
     def assign_labels(self, **kwargs):
 
@@ -50,9 +50,9 @@ class Stats(object):
                     self.labels = kwargs['labels']
                 if 'settings' in kwargs:
                     self._settings = kwargs['settings']
-                self._reset()
+                self.reset()
 
-        for tr in transactions:
+        for _hash, tr in transactions.iteritems():
             del tr.labels
             account = tr.account
             # Get all matches, but break after first match in each group
@@ -73,10 +73,11 @@ class Stats(object):
             the_label = tr.get_best_match_label()
             self._ltr[the_label].append(tr)
             tr.cash_flow_ignore = the_label in self._ignore
+            # If tr in transactions, remove it and update hash
+            if _hash in self.transactions:
+                del self.transactions[_hash]
+            self.transactions[hash(tr)] = tr
 
-        if 'transactions' in kwargs:
-            # Add new transactions
-            self.transactions.extend(kwargs['transactions'])
                             
     def __str__(self):
         if not self.transactions:
@@ -90,10 +91,11 @@ class Stats(object):
 
         def prlbl(item): return len(item[1])
         ret = '\n'.join('[%s]\n' % lb + \
-                        '%s\n'   % "\n   ".join("%s %s" % (str(tr), self._lc) for tr in sorted(trs)) + \
-                        '%s'     % sumstr % (sum(tr.amount_local for tr in trs), self._lc) \
+                        '   %s\n'   % '\n   '.join('%s %s' % (str(tr), self._lc) 
+                                                   for tr in sorted(trs)) + \
+                        '%s' % sumstr % (sum(tr.amount_local for tr in trs), self._lc) \
                         for (lb, trs) in filter(prlbl, sorted_items(self._ltr)))
-        ret += (sumstr % (self.balance, self._lc)).replace('_',"=")
+        ret += (sumstr % (self.balance, self._lc)).replace('_','=')
         return ret
 
                 
@@ -102,8 +104,11 @@ class Year(Stats, object):
     def __init__(self, year, stats):
         
         try:
-            self.year = int(year)
-            assert(self.year <= datetime.date.today().year)
+            if year:
+                self.year = int(year)
+                assert(self.year <= datetime.date.today().year)
+            else:
+                self.year = datetime.date.today().year
             self._ltr       = stats._ltr
             self._lc        = stats._lc
             self._fc_lbl    = stats._fc_lbl
@@ -120,9 +125,7 @@ class Year(Stats, object):
     def _filter_year(self):
         def filty(tr): return tr.date.year == int(self.year)
         self._ltr = dict((lb, filter(filty, trs)) for (lb, trs) in self._ltr.iteritems())
-        self.transactions = []
-        for trs in self._ltr.values():
-            self.transactions.append(trs)
+        self.transactions = reduce(lambda x, y: x+y, self._ltr.values())
 
             
 class Month(Year, object):
@@ -143,12 +146,10 @@ class Month(Year, object):
             self._filter_month()
             super(Month, self).__init__(year, self)
         except AssertionError:
-            ERROR('Month %s is not a valid month' % month)
+            ERROR('\'%s\' is not a valid month' % month)
             exit(0)
 
     def _filter_month(self):
         def filtm(tr): return tr.date.month == self.month
         self._ltr = dict((lb, filter(filtm, trs)) for (lb, trs) in self._ltr.iteritems())
-        self.transactions = []
-        for trs in self._ltr.values():
-            self.transactions.append(trs)
+        self.transactions = reduce(lambda x, y: x+y, self._ltr.values())
