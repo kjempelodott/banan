@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# ----------------------------------------------
-# Fully customizable list of transaction labels
+# ----------------------------------------------------
+# Settings and customizable list of transaction labels
 #
 # Syntax:
 #  [label1]
@@ -11,24 +11,42 @@
 #  keyword1
 #  keyword2
 #  ...
-# 
+#  [settings]
+#  ...
+#
+#
+# Example:
+#
+# [bar]
+# FOO
+#
+# [savings]
+# xxxx.xxxx.xxxx.xxxx
+#
+# [settings]
+# local_currency=NO
+# foreign_currency_label=travel
+# incomes_label=innskudd
+# cash_flow_ignore=savings
+#
+#
 # Transactions are assigned to labels with matching
 # keywords. The transaction "VISA FOO SPAM" will match
 # the keyword "FOO" and will thus be assigned the label
 # "bar". If a transaction matches more than one label,
-# a warning will be issued, and the first matching label
+# a warning will be issued, and the longest matching label
 # will be assigned. Wildcards (*) are supported.
 #
-# The settings section currently support the following
-# sections:
+# The settings section currently supports the following
+# options:
 #    local_currency	      local currency (e.g. USD)
-#     			      DEFAULT: guessed from env
+#     			      DEFAULT: guessed from os.env
 #
 #    foreign_currency_label   label assigned to
 #    			      transactions with non-local
-#			      currency, if they do not
-#			      match any other labels
-#			      DEFAULT: none
+#			      currency, if no other labels
+#			      match
+#			      DEFAULT: <none>
 #
 #    incomes_label	      label assigned to positive
 #    			      transactions
@@ -39,17 +57,6 @@
 #			      (separated by comma)
 #			      will be ignored in the 
 #			      cash flow
-#    			      DEFAULT: none
+#    			      DEFAULT: <none>
 # ---
 
-[foo]
-BAR
-
-[savings]
-xxxx.xxxx.xxxx.xxxx
-
-[settings]
-local_currency=USD
-foreign_currency_label=travel
-incomes_label=income
-cash_flow_ignore=savings

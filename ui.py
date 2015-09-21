@@ -3,9 +3,8 @@ from curses import panel
 
 class Dict(dict):
     """
-    This is the Same as :py:obj:`dict`, but it returns ``False`` instead \
-    of raising :py:exc:`~exceptions.KeyError` whenever a non-existing object \
-    is requested.
+    A :py:obj:`dict` that returns ``False`` instead of raising 
+    :py:exc:`~exceptions.KeyError` whenever a non-existing item is requested.
     """
     def __getitem__(self, key):
         if self.has_key(key):
@@ -66,7 +65,7 @@ class Menu(object):
             args = action[1:]
             func(*args)
             #panel.update_panels()
-        except:
+        except Exception:
             pass
 
     def __contains__(self, key):
@@ -80,18 +79,18 @@ class Menu(object):
                 def _none(): pass
                 action = _none
             action = [action]
-        assert(str(type(action[0])) in ("<type 'function'>",
-                                        "<type 'instancemethod'>"))
+        assert(str(type(action[0])) in ('<type \'function\'>',
+                                        '<type \'instancemethod\'>'))
         self.actions[key] = action
 
     @classmethod
-    def add_menu(cls, main_win, title, xpos, width, items = None):
+    def add_menu(cls, stdscr, title, xpos, width, items = None):
         """
-        Add a menu to the window ``main_win``. \
+        Add a menu to the window ``stdscr``. \
         Items in the menu are specified in ``items``.
 
-        :param main_win: window
-        :type main_win: :py:obj:`curses.window` 
+        :param stdscr: window
+        :type stdscr: :py:obj:`curses.window` 
         :param str title: title of menu
         :param int xpos: position
         :param int width: width of menu
@@ -102,18 +101,18 @@ class Menu(object):
         \
         * Menu with several items \n \
                   \t ``items = ( \n \
-                  \t\t ("Item1", [function1, *args]), \n \
-                  \t\t ("Item2", [function2, *args]), \n \
+                  \t\t ('Item1', [function1, *args]), \n \
+                  \t\t ('Item2', [function2, *args]), \n \
                   \t\t ...)`` \n \
         * Menu without items \n \
                   \t ``items = [function, *args]``
 
         """
-        HEIGHT, WIDTH = main_win.getmaxyx()
+        HEIGHT, WIDTH = stdscr.getmaxyx()
         assert((type(title) == str) and len(title))
         assert((type(xpos) == int) and xpos >= 0 and xpos <= WIDTH)
-        main_win.addstr(1, xpos, title[0], curses.A_BOLD)
-        main_win.addstr(1, xpos+1, title[1:])
+        stdscr.addstr(1, xpos, title[0], curses.A_BOLD)
+        stdscr.addstr(1, xpos+1, title[1:])
         n = len(items) if (type(items) == tuple and items) else 0
         menu = None
         if n:
@@ -128,9 +127,9 @@ class Menu(object):
             menu[name[0].lower()] = action
         else:
             if cls == Prompt:
-                menu = Prompt(main_win, title)
+                menu = Prompt(stdscr, title)
             else:
-                menu = Menu(main_win, False)
+                menu = Menu(stdscr, False)
             if items:
                 menu[title[0].lower()] = items
         curses.doupdate()
@@ -139,25 +138,25 @@ class Menu(object):
 
 class Prompt(Menu, object):
 
-    def __init__(self, main_win, msg):
-        HEIGHT, WIDTH = main_win.getmaxyx()
+    def __init__(self, stdscr, msg):
+        HEIGHT, WIDTH = stdscr.getmaxyx()
         self.window = curses.newwin(3,20,10,40)
         self.window.border(0)
-        self.window.addstr(1,1,msg + ":")
+        self.window.addstr(1,1,msg + ': ')
         self.panel = curses.panel.new_panel(self.window)
         self.panel.hide()
         panel.update_panels()
         self.actions = Dict()
 
     def show(self):
-        return super(Prompt, self).show()
-        # get input
-        # return input
+        super(Prompt, self).show()
+        curses.echo()
+        instr = stdscr.getstr()
+        curses.noecho()
+        return instr
 
     def hide(self):
         super(Prompt, self).hide()
-        # get input
-        # return input
         
 def init(h, w):
     # Initialize curses
@@ -187,4 +186,4 @@ def clean_up(stdscr, ex = True):
     curses.endwin()
     curses.echo()
     if ex:
-        exit(0)
+        sys.exit(0)
