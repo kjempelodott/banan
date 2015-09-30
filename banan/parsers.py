@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+
 import re, os
-from logger import *
 from datetime import date, datetime
+from logger import *
     
 
 class Parser(object):

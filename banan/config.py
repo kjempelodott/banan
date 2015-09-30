@@ -1,7 +1,6 @@
 import re, locale
 from logger import *
 
-
 class Config:
     
     def __init__(self, conf = 'labels.conf'):

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-from db import db
-import parse
-import config
+from banan import TransactionsDB, Config
+from banan import yAbankCSVParser, yAbankPDFParser, BankNorwegianCSVParser
 
-c = config.Config()
-t = db.TransactionsDB(c)
+c = Config()
+t = TransactionsDB(c)
 t.clearall()
 dup = False
 
@@ -14,14 +13,14 @@ import os
 for f in os.listdir('yabank'):
     fpath = 'yabank/' + f
     if f[-4:] == '.csv':
-        t.feed(fpath, parse.yAbankCSVParser, dup)
+        t.feed(fpath, yAbankCSVParser, dup)
     if f[-4:] == '.pdf':
         fpath = 'yabank/' + f
-        t.feed(fpath, parse.yAbankPDFParser, dup)
+        t.feed(fpath, yAbankPDFParser, dup)
 for f in os.listdir('banknorwegian'):
     fpath = 'banknorwegian/' + f
     if f[-4:] == '.csv':
-        t.feed(fpath, parse.BankNorwegianCSVParser, dup)
+        t.feed(fpath, BankNorwegianCSVParser, dup)
 
 
 t.db.close()

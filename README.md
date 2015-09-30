@@ -12,6 +12,6 @@ Parse different bank statements and categorize the transactions.
 
 ### Requirements:
 * python-pypdf
-* buzhug
+* python-buzhug
 * (matplotlib?)
 * (some webshit?)

@@ -4,7 +4,7 @@ from buzhug import Base
 
 class TransactionsDB:
 
-    BASE = 'db/transactions'
+    BASE = 'banan/transactions'
 
     def __init__(self, conf):
         self.config = conf
