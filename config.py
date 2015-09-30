@@ -47,7 +47,7 @@ class Config:
                 continue
             
             if section in self.labels:
-                self.labels[section].append(line.replace('*','.*').strip())
+                self.labels[section].append(re.compile(line.replace('*','.*').strip()))
                 continue
 
             is_setting = SETTING.match(line)
@@ -76,7 +76,7 @@ class Config:
         account = entry['account']
         for label, keywords in self.labels.iteritems():
             for kw in keywords:
-                if re.sub(kw, '', account) != account:
+                if kw.sub('', account) != account:
                     matches[kw] = label
                     break
 
@@ -92,7 +92,8 @@ class Config:
                 return self.incomes_label
             return self.others_label
         
-        label = matches[sorted(matches.keys(), key=len, reverse=True)[0]]
+        relen = lambda r: len(r.pattern)
+        label = matches[sorted(matches.keys(), key=relen, reverse=True)[0]]
         rest = matches.values()
         rest.remove(label)
         WARN('[%s] matches several labels' % account,
