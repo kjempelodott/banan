@@ -23,6 +23,7 @@ class Parser(object):
 
         except IOError: 
             ERROR('[%s] could not be opened for reading ' % fpath)
+            raise SystemExit
 
     @staticmethod
     def parse_amount(value, sign = 1):
@@ -125,7 +126,7 @@ class yAbankPDFParser(Parser):
         if db._pos.next_id > offset:
             # Remove the last entry, the invoice sum
             db.delete(db[db._pos.next_id - 1])
-
+            INFO('  deleted last bogus entry')
           
 class CSVParser(Parser):
 

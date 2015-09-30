@@ -1,30 +1,34 @@
 from sys import stdout, stderr
-import codecs
+from time import strftime
 
 LOGLEVEL = 4
-LOG = open('banan.log', 'w')
+LOG      = open('banan.log', 'w')
 LOG.write('# -*- coding: utf-8 -*-\n\n')
 
 def ERROR(msg, *lines):
-    LOG.write('ERROR   : ' + msg + '\n')
-    _MSG(*lines)
+    msg = 'ERROR   : ' + msg + '\n'
+    stderr.write(msg)
+    _write(msg)
+    _msg(*lines)
 
 def WARN(msg, *lines):
     if LOGLEVEL > 1:
-        LOG.write('WARNING : ' + msg + '\n')
-        _MSG(*lines)
+        _write('WARNING : ' + msg + '\n')
+        _msg(*lines)
 
 def INFO(msg, *lines):
     if LOGLEVEL > 2:
-        LOG.write('INFO    : ' + msg + '\n')
-        _MSG(*lines)
+        _write('INFO    : ' + msg + '\n')
+        _msg(*lines)
 
 def DEBUG(msg, *lines):
     if LOGLEVEL > 3:
-        LOG.write('DEBUG   : ' + msg + '\n')
-        _MSG(*lines)
+        _write('DEBUG   : ' + msg + '\n')
+        _msg(*lines)
 
-def _MSG(*lines):
+def _msg(*lines):
     for line in lines:
-        LOG.write(' '*10 + line + '\n')
+        LOG.write(' '*21 + line + '\n')
 
+def _write(msg):
+    LOG.write('[%s] %s' % (strftime('%H:%M:%S'), msg))
