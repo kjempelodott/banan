@@ -2,14 +2,16 @@
 
 Parse different bank statements and categorize the transactions.
 
-### What it does
-* Parses all my bank statements
-* Prints cash flow for August 2015 (hardcoded in main.py) to terminal :)
+### What it currently does
+* Parses all my bank statements and inserts them to a buzhug database
 
 ### What I want it to do
-* Open up a curses UI with menus and shit
-* Plot statistics
+* Make a nice webinterface to buzhug database with nice buttons (tympanus.net?)
+* Plot something based on the query
+* Or just print a table
 
 ### Requirements:
 * python-pypdf
-* (matplotlib)
+* buzhug
+* (matplotlib?)
+* (some webshit?)

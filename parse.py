@@ -1,90 +1,56 @@
 # -*- coding: utf-8 -*-
-import re, os, datetime
-from HTMLParser import HTMLParser
-from transaction import Transaction
+import re, os
 from logger import *
-from hashlib import md5
+from datetime import date, datetime
+    
 
-class _Parser(object):
+class Parser(object):
 
+    RE_NO = re.compile(r'(^-?[\.\d]+?)([,\.](\d{1,2}))?$')
+    
     @classmethod
-    def update(cls, files, stats):
-        for f in os.listdir(cls.DIR):
-            try:
-                if os.path.splitext(f)[1] != cls.FILEEXT:
-                    continue
-                f = cls.DIR + f
-                data = open(f, 'rb').read()
-                _md5 = md5(data).hexdigest()
-                if not files.has_key(f) or files[f] != _md5:
-                    stats.update(cls.parse(data))
-                    files[f] = _md5
-                    INFO('Successfully parsed ' + f)
-            except IOError: 
-                ERROR('Could not open file ' + f)
+    def read_file(cls, fpath):
+        INFO('[%s] %s' % (cls.__name__, fpath))
+        try:
+            ext = os.path.splitext(fpath)[1]
+            if ext != cls.FILEEXT:
+                ERROR('[%s] can not parse %s' % (cls.__name__, ext))
+                return
 
+            data = open(fpath, 'rb').read()
+            return data
 
-class yAbankPDFParser(_Parser, object):
-
-    FILEEXT = '.pdf'
-    DIR     = './yabank/'
-    # TODO: does not match "innbetaling m/kid 4.799,99 ...."
-    _RE_CREDIT = re.compile(r'(?P<date>\d\d\.\d\d)' \
-                             '(?P<account>.{1,40}?)\d\d\.\d\d' \
-                             '(?P<amount>[\.\d]+,\d\d)')
-    _RE_DEBIT  = re.compile(r'(?P<account>.{1,40}?)' \
-                             '(?P<date>\d\d\.\d\d)' \
-                             '(?P<amount>[\.\d]+,\d\d)')
+        except IOError: 
+            ERROR('[%s] could not be opened for reading ' % fpath)
 
     @staticmethod
-    def parse(data):
-        data = yAbankPDFParser.convert(data).split("Side:")[1:]
+    def parse_amount(value, sign = 1):
+        _value = value.replace(' ', '')
         try:
-            yyyy = int(re.search("Saldo pr\. \d\d\.\d\d\.(\d\d\d\d)kr", data[0]).groups()[0])
+            m = Parser.RE_NO.match(_value).groups()
+            _value = m[0].replace('.','') + '.' + (m[2] if m[2] else '00')
+            return sign * float(_value)
         except:
-            WARNING('Failed to extract year from PDF')
-            yyyy = datetime.date.now().year
+            ERROR('failed to parse amount ' + value)
 
-        transactions = {}
-        pos, match = 0, 0
-        credit, debit = yAbankPDFParser._RE_CREDIT, yAbankPDFParser._RE_DEBIT
+    @staticmethod
+    def post_process(db, **kw):
+        pass
 
-        def get_match(page):
-            match = [credit.search(page, pos), debit.search(page, pos)]
-            if match[0] and match[1]:
-                return match[match[0].end() > match[1].end()]
-            else:
-                return match.remove(None) or match[0]
 
-        transactions = {}
-        _last = None
-        for page in data[1:]:
-            match = get_match(page)
-            while match:
-                gr = match.groupdict()
-                if u'favør' in unicode(gr['account'], 'utf-8'):
-                    pos = match.end()
-                    match = get_match(page)
-                    continue
-                sign = (1,-1)[match.re == credit]
-                dd, mm = gr['date'].split('.')
+class yAbankPDFParser(Parser):
 
-                transaction = Transaction()
-                transaction.account = gr['account']
-                transaction.set_amount(gr['amount'], sign)
-                transaction.amount_local = transaction.amount
-                transaction.currency = 'NOK'
-                transaction.date = datetime.date(int(yyyy), int(mm), int(dd))
-                _last = hash(transaction)
-                transactions[_last] = transaction
-                pos = match.end()
-                match = get_match(page)
-            # End of page, set pos to 0
-            pos = 0
+    FILEEXT   = '.pdf'
 
-        # Remove last entry, which is the sum
-        del transactions[_last]
-        return transactions
+    # TODO: does not match "innbetaling m/kid 4.799,99 ...." yes, it does?!
+    RE_CREDIT = \
+        re.compile(r'(?P<date>\d\d\.\d\d)(?P<account>.{1,40}?)\d\d\.\d\d(?P<amount>[\.\d]+,\d\d)')
+    RE_DEBIT  = \
+        re.compile(r'(?P<account>.{1,40}?)(?P<date>\d\d\.\d\d)(?P<amount>[\.\d]+,\d\d)')
+
+    RE_YYYY   = re.compile('Saldo pr\. \d\d\.\d\d\.(\d\d\d\d)kr')
+    YYYY      = int()
+
 
     @staticmethod
     def convert(data):
@@ -99,108 +65,131 @@ class yAbankPDFParser(_Parser, object):
         data = htmldata.seek(0) or htmldata.read()
         return data
 
-            
-class yAbankCSVParser(_Parser, object):
-
-    CHARSET = 'iso-8859-10'
-    FILEEXT = '.csv'
-    DIR     = './yabank/'
-    _RE_NONLOC  = re.compile(r"^VISA .+ \d\d.\d\d (\D+) (\d+,\d\d) .+$")
 
     @staticmethod
-    def parse(data):
-        data = data.decode(yAbankCSVParser.CHARSET).encode('utf-8')
-        transactions = {}
-        for line in data.split('\n'):
-            if not line:
-                continue
-            line = line.split(';')
-            date = line[1]
-            dd, mm, yyyy = date.split('-')
-            account = line[2]
-            amount_local = amount = line[3]
-            currency = 'NOK'
-            try:
-                currency, amount = yAbankCSVParser._RE_NONLOC.match(account).groups()
-            except:
-                pass
+    def set_year(pre):
+        try:
+            yAbankPDFParser.YYYY = int(yAbankPDFParser.RE_YYYY.search(pre).groups()[0])
+        except:
+            WARN('failed to extract year from pdf')
+            yAbankPDFParser.YYYY = date.today().year
 
-            transaction = Transaction()
-            transaction.account = account
-            transaction.set_amount(amount)
-            transaction.amount_local = transaction.amount
-            transaction.currency = currency
-            transaction.date = datetime.date(int(yyyy), int(mm), int(dd))
-            transactions[hash(transaction)] = transaction
-
-        return transactions
-
-
-class BankNorwegianCSVParser(_Parser, object):
-
-    CHARSET = 'utf-8'
-    FILEEXT = '.csv'
-    DIR     = './banknorwegian/'
 
     @staticmethod
-    def parse(data):
-        data = data.decode(BankNorwegianCSVParser.CHARSET).encode('utf-8')
-        transactions = {}
-        for line in data.split('\n')[1:]:
-            if not line:
-                continue
-            line = line.split(';')
-            date = line[0]
-            mm, dd, yyyy = date.split('/')
-            account = line[1]
-            amount = line[3]
-            currency = line[5]
-            amount_local = line[6]          
+    def parse(fpath):
+        data = yAbankPDFParser.read_file(fpath)
+        data = yAbankPDFParser.convert(data).split("Side:")[1:]
+        yAbankPDFParser.set_year(data.pop(0))
 
-            transaction = Transaction()
-            transaction.account = account
-            transaction.set_amount(amount)
-            transaction.set_amount_local(amount_local)
-            transaction.currency = currency
-            transaction.date = datetime.date(int(yyyy), int(mm), int(dd))
-            transactions[hash(transaction)] = transaction
+        page_pos = 0
 
-        return transactions
+        for page in data:
 
+            def get_entry():
+                global entry
+                entry = [yAbankPDFParser.RE_CREDIT.search(page, page_pos), 
+                         yAbankPDFParser.RE_DEBIT.search(page, page_pos)]
 
-"""
-A   <kjop>  [kode] [varenavn] [antall] [pris] [nest siste tall: 2 (intern), 1 (ekstern)] *[tull]
-J   <retur>  ...
-B 30 SIGN.ANNUL <annulert>
+                if entry[0] and entry[1]:
+                    entry = entry[entry[0].end() > entry[1].end()]
+                else:
+                    entry = entry.remove(None) or (None if not entry else entry[0])
 
-R   <sum>
-x   <mva>
- <  <slutt: tid og sum>
-"""
-
-class ZRapport(object):
-
-    @staticmethod
-    def parse(data):
-        tickets = {}
-        this = None
-        for line in data.split('\n'):
-            if not line:
-                continue
-            if line[0:2] in ['A ','J ']:
-                try:
-                    name = line[7:28].strip()
-                    n = int(line[28:32])
-                    price = float(line[32:43])
-                    is_intern = bool(int(line[54]) - 1)
-                    this = md5(line).hexdigest()
-                    tickets[this] = [name, n, price, is_intern]
-                except Exception as e:
-                    WARNING('Failed to parse \'line\'')
+            get_entry()
+            while entry:
+                fields = entry.groupdict()
+                if 'favør' in fields['account']:
+                    page_pos = entry.end()
+                    get_entry()
                     continue
-            elif line[0:17] == "B   30 SIGN.ANNUL":
-                del tickets[this]
-            elif line[0:2] == " <":
-                this = None
-        return tickets
+                
+                sign = (1,-1)[entry.re == yAbankPDFParser.RE_CREDIT]
+                dd, mm = fields['date'].split('.')
+
+                fields['amount']       = sign * yAbankPDFParser.parse_amount(fields['amount'])
+                fields['amount_local'] = fields['amount']
+                fields['currency']     = 'NOK'
+                fields['date']         = date(yAbankPDFParser.YYYY, int(mm), int(dd))
+
+                yield fields
+
+                page_pos = entry.end()
+                get_entry()
+
+            page_pos = 0
+
+
+    @staticmethod
+    def post_process(db, offset):
+        if db._pos.next_id > offset:
+            # Remove the last entry, the invoice sum
+            db.delete(db[db._pos.next_id - 1])
+
+          
+class CSVParser(Parser):
+
+    @classmethod
+    def parse(cls, fpath):
+        data = cls.read_file(fpath)
+        data = data.decode(cls.CHARSET).encode('utf-8')
+        
+        entry = {}
+        for line in data.split('\n')[cls.SKIP:]:
+
+            if not line:
+                continue
+            line = line.split(cls.DELIM)
+
+            entry['date']         = datetime.strptime(line[cls.DATEIDX], cls.DATEFORMAT).date()
+            entry['account']      = line[cls.ACCTIDX]
+            entry['amount']       = CSVParser.parse_amount(line[cls.AMOUNTIDX])
+            entry['amount_local'] = CSVParser.parse_amount(line[cls.AMOUNTLCIDX]) if \
+                                    cls.AMOUNTLCIDX != cls.AMOUNTIDX else entry['amount']
+            entry['currency']     = line[cls.CURRENCYIDX]
+            cls._parse(entry)
+
+            yield entry
+
+    @classmethod
+    def _parse(cls, entry):
+        pass
+
+  
+class yAbankCSVParser(CSVParser):
+
+    CHARSET       = 'iso-8859-10'
+    FILEEXT       = '.csv'
+    DATEFORMAT    = '%d-%m-%Y'
+    DELIM         = ';'
+    SKIP          = 0
+
+    RE_NONLOCAL   = re.compile(r"^VISA .+ \d\d.\d\d (\D+) (\d+,\d\d) .+$")
+    DATEIDX       = 1
+    ACCTIDX       = 2
+    AMOUNTIDX     = 3
+    CURRENCYIDX   = -1
+    AMOUNTLCIDX   = AMOUNTIDX
+
+    @staticmethod
+    def _parse(entry):
+        try:
+            entry['currency'], entry['amount'] = \
+                yAbankCSVParser._RE_NONLOCAL.match(account).groups()
+        except:
+            entry['currency'] = 'NOK'
+
+
+class BankNorwegianCSVParser(CSVParser):
+
+    CHARSET       = 'utf-8'
+    FILEEXT       = '.csv'
+    DATEFORMAT    = '%m/%d/%Y'
+    DELIM         = ';'
+    SKIP          = 1
+
+    DATEIDX       = 0
+    ACCTIDX       = 1
+    AMOUNTIDX     = 3
+    CURRENCYIDX   = 5
+    AMOUNTLCIDX   = 6
 

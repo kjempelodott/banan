@@ -1,19 +1,30 @@
 from sys import stdout, stderr
+import codecs
 
-LOGLEVEL=4
+LOGLEVEL = 4
+LOG = open('banan.log', 'w')
+LOG.write('# -*- coding: utf-8 -*-\n\n')
 
-def ERROR(msg):
-    stderr.write('ERROR   : ' + msg + '\n')
+def ERROR(msg, *lines):
+    LOG.write('ERROR   : ' + msg + '\n')
+    _MSG(*lines)
 
-def WARN(msg):
+def WARN(msg, *lines):
     if LOGLEVEL > 1:
-        stdout.write('WARNING : ' + msg + '\n')
+        LOG.write('WARNING : ' + msg + '\n')
+        _MSG(*lines)
 
-def INFO(msg):
+def INFO(msg, *lines):
     if LOGLEVEL > 2:
-        stdout.write('INFO    : ' + msg + '\n')
+        LOG.write('INFO    : ' + msg + '\n')
+        _MSG(*lines)
 
-def DEBUG(msg):
+def DEBUG(msg, *lines):
     if LOGLEVEL > 3:
-        stdout.write('DEBUG   : ' + msg + '\n')
+        LOG.write('DEBUG   : ' + msg + '\n')
+        _MSG(*lines)
+
+def _MSG(*lines):
+    for line in lines:
+        LOG.write(' '*10 + line + '\n')
 
