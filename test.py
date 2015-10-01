@@ -4,7 +4,7 @@ import os, sys
 from argparse import ArgumentParser
 from banan import TransactionsDB, Config
 from banan import yAbankCSVParser, yAbankPDFParser, BankNorwegianCSVParser
-
+from banan import Server
 
 map_of_maps = {
 
@@ -23,8 +23,12 @@ def main(args):
         exit(0)
 
     if args.server_action:
-        # todo
-        print args.server_action, 'server'
+        if args.server_action == 'stop':
+            Server.stop()
+        elif args.server_action == 'start':
+            Server().start()
+        else:
+            Server().restart()
 
     if args.fpath:
         ext = os.path.splitext(args.fpath)[1]
@@ -47,7 +51,8 @@ def main(args):
         db = TransactionsDB(conf)
         
         try:
-            db.feed(args.fpath, bankparser, args.skip_duplicates, args.overwrite_duplicates, args.dry_run)
+            db.feed(args.fpath, bankparser, args.skip_duplicates, 
+                    args.overwrite_duplicates, args.dry_run)
         except SystemExit:
             print('SystemExit raised')
             exit(0)
