@@ -5,8 +5,9 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 class HTTPRequestHandler(BaseHTTPRequestHandler, object):
    
-    TYPES = { '.css'  : ('text/css' , 'send_css' ),
-              '.html' : ('text/html', 'send_html'  )}
+    TYPES = { '.js'   : ('text/javascript' , 'send_static' ),
+              '.css'  : ('text/css'        , 'send_static' ),
+              '.html' : ('text/html'       , 'send_html'   )}
 
     def get_type(self):
 
@@ -22,12 +23,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
         self.send_header('Content-type', _type)
         getattr(self, _callback)()
         
-    def send_css(self):
+    def send_static(self):
 
-        path = 'banan/template/static/banan.css'
-        if os.path.exists(self.path):
-            path = self.path
-        self.send_data(path)
+        path = '.' + self.path
+        if os.path.exists(path):
+            self.send_data(path)
 
     def send_html(self):
 

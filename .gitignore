@@ -1,3 +1,3 @@
 labels.conf
 *.pyc
-*.pickle
+*.log

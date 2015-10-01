@@ -2,10 +2,14 @@
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <link href="banan/template/static/effects.css" rel="stylesheet" type="text/css">
   <link href="banan/template/static/banan.css" rel="stylesheet" type="text/css">
+  <script src="banan/template/static/toggleview.js" rel="stylesheet"
+  type="text/javascript"></script>
 </head>
 <body>
-<div class="main">
+
+<section class="main">
 | -------------------------------------- |<br>
 <br>
 <br>
@@ -18,9 +22,50 @@ Pretty plots go here<br>
 <br>
 <br>
 | -------------------------------------- |<br>
-</div>
-<div class="control">
-Pretty buttons go here
-</div>
+</section>
+
+<section class="control">
+
+  <nav class="ctrl">
+    <a href="#">PLOT</a>
+    <a href="#">TEXT</a>
+  </nav>
+
+  <div class="query">
+    <div class="for-each">
+      for each 
+      <a href="#" onclick="hide('average'); switch('labels', 'period');">month</a> 
+      <a href="#" onclick="hide('average'); switch('labels', 'period');">year</a>
+      <a href="#" onclick="show('average'); switch('period', 'labels');">label</a>
+    </div>
+
+    <div class="show-me">
+      show me
+      <a href="#" id="sum">sum</a> 
+      <a href="#" id="average">average</a>
+    </div>
+
+    <div class="select-labels" id="labels" style="display: none;">
+      <a href="#">labels</a>
+    </div>
+
+    <div class="select-period" id="period" style="display: none;">
+      <a href="#">month</a>
+      <a href="#">year</a>
+    </div>
+
+  </div>
+
 </body>
 </html>
+
+<!-- if MONTH|YEAR, 
+     display only SUM
+     display *LABELS
+
+     if LABEL
+     display SUM and AVERGAE
+     display from-FORM and to-FORM 
+!-->
+
+
