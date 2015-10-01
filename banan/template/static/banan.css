@@ -1,0 +1,25 @@
+body {
+    font-size: 2em;
+    text-align: center;
+    font-weight: lighter;
+    font-family: sans-serif;
+    margin: 0;
+}
+
+@media screen {
+div {
+    width: 100%;
+    color: #ffffff;
+    position: absolute;
+    padding: 1em 0 1em 0;
+}
+div.main {
+    height: 75%;
+    background-color: #435a6b;
+}
+div.control {
+    height: 25%;
+    bottom: 0;
+    background-color: #f19f0f;
+}
+}

@@ -1,6 +1,51 @@
 import sys, os, signal, fcntl, time
-from BaseHTTPServer import HTTPServer
-from SimpleHTTPServer import SimpleHTTPRequestHandler
+from posixpath import splitext
+from shutil import copyfileobj
+from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+
+class HTTPRequestHandler(BaseHTTPRequestHandler, object):
+   
+    TYPES = { '.css'  : ('text/css' , 'send_css' ),
+              '.html' : ('text/html', 'send_html'  )}
+
+    def get_type(self):
+
+        ext = splitext(self.path)[-1]
+        if not ext in HTTPRequestHandler.TYPES:
+            ext = '.html'
+        return HTTPRequestHandler.TYPES[ext]
+
+    def do_GET(self):
+
+        _type, _callback = self.get_type()
+        self.send_response(200)
+        self.send_header('Content-type', _type)
+        getattr(self, _callback)()
+        
+    def send_css(self):
+
+        path = 'banan/template/static/banan.css'
+        if os.path.exists(self.path):
+            path = self.path
+        self.send_data(path)
+
+    def send_html(self):
+
+        path = 'banan/template/layout.html'
+        self.send_data(path)
+
+    def send_data(self, path):
+
+        f = open(path, 'rb')
+        fs = os.fstat(f.fileno())
+        self.send_header('Content-Length', str(fs.st_size))
+        self.send_header('Last-Modified', self.date_time_string(fs.st_mtime))
+
+        self.end_headers()
+
+        copyfileobj(f, self.wfile)
+        f.close()
+
 
 class Server(HTTPServer, object):    
 
@@ -17,15 +62,15 @@ class Server(HTTPServer, object):
     def start(self):
 
         try:
-            super(Server, self).__init__(('127.0.0.1', 8000), SimpleHTTPRequestHandler)
+            super(Server, self).__init__(('127.0.0.1', 8000), HTTPRequestHandler)
             print('starting server ...')
             
             Server.create_daemon()
-            Server.get_pid()
+            Server.write_pid()
             self.serve_forever()
 
         except IOError:
-            print('server is alreay running ...')
+            print('server is alreay running (%s) ...' % Server.read_pid())
 
         except KeyboardInterrupt:
             self.shutdown()
@@ -40,23 +85,27 @@ class Server(HTTPServer, object):
     def create_daemon():
 
         pid = os.fork()
-        if pid == 0:
+        if pid == 0: # todo: pipe output somewhere
             os.setsid()
         else:
             os._exit(0) # exit parent
 
     @staticmethod
-    def get_pid():
+    def write_pid():
         lock = open(Server.PID_FILE, 'w')
         fcntl.flock(lock, fcntl.LOCK_EX|fcntl.LOCK_NB)
         lock.write(str(os.getpid()))
-        lock.flush()
         fcntl.flock(lock, fcntl.LOCK_UN)
+        lock.close()
+
+    @staticmethod
+    def read_pid():
+        return open(Server.PID_FILE, 'r').readline()
 
     @staticmethod
     def stop():
         try:
-            pid = open(Server.PID_FILE, 'r').readline()
+            pid = Server.read_pid()
             if pid:
                 print('stopping process %s ...' % pid)
                 os.kill(int(pid), signal.SIGINT)
