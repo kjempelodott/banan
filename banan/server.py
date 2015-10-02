@@ -3,11 +3,72 @@ from posixpath import splitext
 from shutil import copyfileobj
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
+
+class Query(object):
+
+    QUERIES = { 'foreach' : ('month', 'year', 'label'),
+                'show'    : ('sum', 'average'        ),
+                'data'    : (None, None              )}    
+
+    def __init__(self):
+
+        self._foreach = 'label'
+        self._show = 'sum'
+        self._labels = []
+        self._period = '$lastMonth'
+
+    def assemble_json(self):
+        pass
+
+    def update(self):
+        pass
+
+    def handle(self, pair):
+        var, val = query.split('=', 1)
+        if val in HTTPRequestHandler.QUERIES.get(var, []):
+            setattr(self, var, val)
+
+    @property
+    def foreach(self):
+        return self._foreach
+    @foreach.setter
+    def foreach(self, val):
+        self._foreach = val
+        update()
+
+    @property
+    def show(self):
+        return self._show
+    @foreach.setter
+    def show(self, val):
+        self._show = val
+        update()
+
+
 class HTTPRequestHandler(BaseHTTPRequestHandler, object):
    
-    TYPES = { '.js'   : ('text/javascript' , 'send_static' ),
-              '.css'  : ('text/css'        , 'send_static' ),
-              '.html' : ('text/html'       , 'send_html'   )}
+    TYPES = { '.js'   : ('text/javascript' , 'handle_static' ),
+              '.css'  : ('text/css'        , 'handle_static' ),
+              '.html' : ('text/html'       , 'handle_html'   )}
+
+    def __init__(self, *args, **kwargs):
+        super(HTTPRequestHandler, self).__init__(*args, **kwargs)
+        self.query = Query()
+
+    def do_POST(self, *args, **kwargs):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain');
+        self.end_headers()
+
+        self.handle_query()
+
+    def handle_query(self):
+        pass
+
+    def do_GET(self):
+
+        self.content_type, _callback = self.get_type()
+        getattr(self, _callback)()
 
     def get_type(self):
 
@@ -15,26 +76,22 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
         if not ext in HTTPRequestHandler.TYPES:
             ext = '.html'
         return HTTPRequestHandler.TYPES[ext]
-
-    def do_GET(self):
-
-        _type, _callback = self.get_type()
-        self.send_response(200)
-        self.send_header('Content-type', _type)
-        getattr(self, _callback)()
         
-    def send_static(self):
+    def handle_static(self):
 
         path = '.' + self.path
         if os.path.exists(path):
-            self.send_data(path)
+            self.respond(path)
 
-    def send_html(self):
+    def handle_html(self):
 
         path = 'banan/template/layout.html'
-        self.send_data(path)
+        self.respond(path)
 
-    def send_data(self, path):
+    def respond(self, path):
+
+        self.send_response(200)
+        self.send_header('Content-type', self.content_type)
 
         f = open(path, 'rb')
         fs = os.fstat(f.fileno())

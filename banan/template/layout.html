@@ -2,10 +2,10 @@
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <link href="banan/template/static/effects.css" rel="stylesheet" type="text/css">
   <link href="banan/template/static/banan.css" rel="stylesheet" type="text/css">
-  <script src="banan/template/static/toggleview.js" rel="stylesheet"
-  type="text/javascript"></script>
+  <link href="banan/template/static/effects.css" rel="stylesheet" type="text/css">
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  <script src="banan/template/static/buttons.js" type="text/javascript"></script>
 </head>
 <body>
 
@@ -26,32 +26,37 @@ Pretty plots go here<br>
 
 <section class="control">
 
-  <nav class="ctrl">
-    <a href="#">PLOT</a>
-    <a href="#">TEXT</a>
-  </nav>
+  <div class="ctrl">
+    <a>PLOT</a>
+    <a>TEXT</a>
+  </div>
+
 
   <div class="query">
-    <div class="for-each">
+
+    <form action="" name="dataselect"></form>
+
+    <span class="foreach">
       for each 
-      <a href="#" onclick="hide('average'); switch('labels', 'period');">month</a> 
-      <a href="#" onclick="hide('average'); switch('labels', 'period');">year</a>
-      <a href="#" onclick="show('average'); switch('period', 'labels');">label</a>
+      <a class="inactive" id="month">month</a> 
+      <a class="inactive" id="year">year</a>
+      <a class="inactive" id="label">label</a>
+    </span>
+
+    <span class="show">
+      show
+      <a class="inactive" id="sum">sum</a> 
+      <a class="inactive" id="average">average</a>
+    </span>
+
+    <div class="select">
+      <span class="select">
+	<a style="display: none;" id="labels">labels</a>
+	<a style="display: none;" id="period">period</a>
+      </span>
     </div>
 
-    <div class="show-me">
-      show me
-      <a href="#" id="sum">sum</a> 
-      <a href="#" id="average">average</a>
-    </div>
 
-    <div class="select-labels" id="labels" style="display: none;">
-      <a href="#">labels</a>
-    </div>
-
-    <div class="select-period" id="period" style="display: none;">
-      <a href="#">month</a>
-      <a href="#">year</a>
     </div>
 
   </div>
