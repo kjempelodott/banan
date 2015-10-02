@@ -4,7 +4,7 @@ from shutil import copyfileobj
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 
-class Query(object):
+class QueryHandler(object):
 
     QUERIES = { 'foreach' : ('month', 'year', 'label'),
                 'show'    : ('sum', 'average'        ),
@@ -53,7 +53,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
 
     def __init__(self, *args, **kwargs):
         super(HTTPRequestHandler, self).__init__(*args, **kwargs)
-        self.query = Query()
+        self.query = QueryHandler()
 
     def do_POST(self, *args, **kwargs):
         self.send_response(200)
@@ -136,7 +136,6 @@ class Server(HTTPServer, object):
         Server.stop()
         time.sleep(1)
         self.start()
-
 
     @staticmethod
     def create_daemon():

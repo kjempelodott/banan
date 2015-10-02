@@ -6,6 +6,7 @@ body {
     margin: 0;
     overflow: auto;
     background-color: #f19f0f;
+    color: #ffffff;
 }
 
 @media screen {
@@ -17,8 +18,23 @@ body {
     }
     
     .main {
+	height: 75%;
 	min-height: 75%;
 	background-color: #435a6b;
+    }
+
+    .container {
+	height: 80%;
+	width: 50%;
+	padding: 10px 10px 10px 10px;
+	margin: 10px auto 0 auto;
+	background: #435a6b;
+    }
+
+    .placeholder {
+	height: 100%;
+	width: 100%;
+	font-size: 12pt;
     }
     
     .control {
@@ -44,8 +60,8 @@ a {
     outline: none;
     position: relative;
     text-decoration: none;
-    color: #ffffff;
     margin: 10px;
     letter-spacing: 1px;
 }
+
 
