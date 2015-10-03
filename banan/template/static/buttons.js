@@ -2,6 +2,9 @@ $(function() {
     $('a').click(function() {
 
 	var elem = this;
+	if (elem.className == 'active') {
+	    return false;
+	}
 
 	var queryVar = elem.closest('span').className;
 	var queryString =  queryVar + '=' + elem.id;

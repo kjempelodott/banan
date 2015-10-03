@@ -1,6 +1,7 @@
 import sys, os, signal, fcntl, time
 from posixpath import splitext
 from shutil import copyfileobj
+from db import TransactionsDB
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 
@@ -11,13 +12,14 @@ class QueryHandler(object):
                 'data'    : (None, None              )}    
 
     def __init__(self):
+        pass
+        # self.db = TransactionsDB()
+        # self._foreach = 'label'
+        # self._show = 'sum'
+        # self._data = '$lastMonth'
+        # return assemble_data()
 
-        self._foreach = 'label'
-        self._show = 'sum'
-        self._labels = []
-        self._period = '$lastMonth'
-
-    def assemble_json(self):
+    def assemble_data(self):
         pass
 
     def update(self):

@@ -1,5 +1,5 @@
 body {
-    font-size: 1.7em;
+    font-size: 16pt;
     text-align: center;
     font-weight: lighter;
     font-family: sans-serif;
@@ -10,49 +10,47 @@ body {
 }
 
 @media screen {
-    section {
-	width: 100%;
-	color: #ffffff;
+
+    .container, .control {
 	position: absolute;
-	padding: .8em 0 .5em 0;
-    }
-    
-    .main {
-	height: 75%;
-	min-height: 75%;
+	width: 100%;
 	background-color: #435a6b;
     }
 
     .container {
-	height: 80%;
-	width: 50%;
-	padding: 10px 10px 10px 10px;
-	margin: 10px auto 0 auto;
-	background: #435a6b;
+	padding-top: 1em;
+	height: 75%;
+	min-height: 75%;
     }
 
     .placeholder {
-	height: 100%;
-	width: 100%;
-	font-size: 12pt;
-    }
-    
-    .control {
-	height: 25%;
-	bottom: 0;
-	background-color: #f19f0f;
-    }
-
-    .ctrl { 
-	margin-bottom: 25px;
-    }
-
-    .query {
+	width: 60%;
+	height: 80%;
+	margin: 0 auto;
 	font-size: .7em;
     }
 
+    span {
+	line-height: 3em;
+    }
+    
+    .control {
+	background-color: #f19f0f;
+	height: 25%;
+	min-height: 25%;
+	bottom: 0;
+	padding-top: .5em;
+    }
+
+    .query {
+	padding-top: 1em;
+	font-size: .7em;
+    }
+
+
     .select {
-	margin-top: 25px
+	width: 80%;
+	margin: 0 auto 1em auto;
     }
 }
 
@@ -61,7 +59,5 @@ a {
     position: relative;
     text-decoration: none;
     margin: 10px;
-    letter-spacing: 1px;
+    letter-spacing: .1em;
 }
-
-
