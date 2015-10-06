@@ -1,5 +1,10 @@
 $(function() {
-    var data = [ ["January", 10], ["February", 8], ["March", 4], ["April", 13], ["May", 17], ["June", 9] ];
+    $.post('', '', function(data) { plot(data) });
+    return false;
+})
+
+
+function plot(data) {
     $.plot("#placeholder", [ data ], {
 	series: {
 	    bars: {
@@ -23,5 +28,5 @@ $(function() {
 	grid: {
 	    color: "#ffffff"
 	}
-    });
- });
+    });console.log(data); 
+ };
