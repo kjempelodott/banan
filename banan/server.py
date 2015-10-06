@@ -1,115 +1,102 @@
-import sys, os, signal, fcntl, time
+import sys, os, signal, fcntl, time, re
+from datetime import date, datetime
 from posixpath import splitext
 from shutil import copyfileobj
+from json import JSONEncoder
+from uuid import uuid4
+
+from StringIO import StringIO
+from SocketServer import TCPServer
+from BaseHTTPServer import BaseHTTPRequestHandler
+
+from config import Config
 from db import TransactionsDB
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-
-
-class QueryHandler(object):
-
-    QUERIES = { 'foreach' : ('month', 'year', 'label'),
-                'show'    : ('sum', 'average'        ),
-                'data'    : (None, None              )}    
-
-    def __init__(self):
-        pass
-        # self.db = TransactionsDB()
-        # self._foreach = 'label'
-        # self._show = 'sum'
-        # self._data = '$lastMonth'
-        # return assemble_data()
-
-    def assemble_data(self):
-        pass
-
-    def update(self):
-        pass
-
-    def handle(self, pair):
-        var, val = query.split('=', 1)
-        if val in HTTPRequestHandler.QUERIES.get(var, []):
-            setattr(self, var, val)
-
-    @property
-    def foreach(self):
-        return self._foreach
-    @foreach.setter
-    def foreach(self, val):
-        self._foreach = val
-        update()
-
-    @property
-    def show(self):
-        return self._show
-    @foreach.setter
-    def show(self, val):
-        self._show = val
-        update()
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler, object):
    
-    TYPES = { '.js'   : ('text/javascript' , 'handle_static' ),
-              '.css'  : ('text/css'        , 'handle_static' ),
-              '.html' : ('text/html'       , 'handle_html'   )}
+    DB = TransactionsDB(Config())
 
-    def __init__(self, *args, **kwargs):
-        super(HTTPRequestHandler, self).__init__(*args, **kwargs)
-        self.query = QueryHandler()
+    TYPES = { '.js'   : ('text/javascript'  , 'handle_static' ),
+              '.css'  : ('text/css'         , 'handle_static' ),
+              '.html' : ('text/html'        , 'handle_static' ),
+              '.json' : ('application/json' , 'send_json'     )}
 
-    def do_POST(self, *args, **kwargs):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain');
-        self.end_headers()
 
-        self.handle_query()
+    def do_POST(self):
 
-    def handle_query(self):
-        pass
+#        try:
+            self.content_type = 'application/json'
+            query = {}
+
+            if 'Content-Type' in self.headers:            
+                assert(self.headers['Content-Type'].startswith('application/x-www-form-urlencoded'))
+                data = self.rfile.read(int(self.headers['Content-Length']))
+                query = dict(item.split('=', 1) for item in data.split('&'))
+
+            self.send_json(**query)
+
+#        except Exception as e:
+#            self.send_response(400)
+#            self.log_error(str(e))
+            
 
     def do_GET(self):
 
-        self.content_type, _callback = self.get_type()
-        getattr(self, _callback)()
+        if self.path == '/':
+            self.path = '/banan/template/layout.html'
 
-    def get_type(self):
+        try:
+            ext = splitext(self.path)[-1]
+            self.content_type, _callback = HTTPRequestHandler.TYPES[ext]
+            getattr(self, _callback)()
+        except Exception as e:
+           self.send_response(404)
+           self.log_error(str(e))
+   
+    def sessionid(self):
 
-        ext = splitext(self.path)[-1]
-        if not ext in HTTPRequestHandler.TYPES:
-            ext = '.html'
-        return HTTPRequestHandler.TYPES[ext]
+        try:
+            return re.findall('sessionid=([-\w]+)', self.headers['Cookie'])[0]
+        except:
+            return uuid4()
         
     def handle_static(self):
 
-        path = '.' + self.path
-        if os.path.exists(path):
-            self.respond(path)
-
-    def handle_html(self):
-
-        path = 'banan/template/layout.html'
-        self.respond(path)
-
-    def respond(self, path):
-
-        self.send_response(200)
-        self.send_header('Content-type', self.content_type)
-
-        f = open(path, 'rb')
+        f = open('.' + self.path, 'rb')
         fs = os.fstat(f.fileno())
+        sessionid = self.sessionid()        
+        
+        self.send_response(200)
+        self.send_header('Cookie', 'sessionid=%s' % sessionid)
+        self.send_header('Content-Type', self.content_type)
         self.send_header('Content-Length', str(fs.st_size))
         self.send_header('Last-Modified', self.date_time_string(fs.st_mtime))
-
         self.end_headers()
-
+        
         copyfileobj(f, self.wfile)
         f.close()
+        
+    def send_json(self, **kw):
+
+        sessionid = self.sessionid()
+        json = HTTPRequestHandler.DB.get_flot_json(sessionid, **kw)
+        json_stream = StringIO(JSONEncoder().encode(json))
+
+        self.send_response(200) 
+        self.send_header('Cookie', 'sessionid=%s' % sessionid)
+        self.send_header('Content-Type', self.content_type);
+        self.send_header('Content-Length', json_stream.len)
+        self.end_headers()
+
+        copyfileobj(json_stream, self.wfile)
 
 
-class Server(HTTPServer, object):    
+class Server(TCPServer, object):    
 
     PID_FILE = '/tmp/banan.pid.lock'
-
+    allow_reuse_address = 1 
+ 
     def __init__(self):
         pass
 
