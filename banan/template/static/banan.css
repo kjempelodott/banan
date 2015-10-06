@@ -13,20 +13,20 @@ body {
 
     .container, .control {
 	position: absolute;
-	width: 100%;
+	width: 100vw;
 	background-color: #435a6b;
     }
 
     .container {
-	padding-top: 1em;
-	height: 75%;
-	min-height: 75%;
+	padding: 5vh 0;
+	height: 65vh;
+	min-height: 65vh;
     }
 
     .placeholder {
-	width: 60%;
-	height: 80%;
-	margin: 0 auto;
+	width: 60vw;
+	height: 65vh;
+	margin: 0 auto; /* puts object in horizontal center */
 	font-size: .7em;
     }
 
@@ -36,21 +36,20 @@ body {
     
     .control {
 	background-color: #f19f0f;
-	height: 25%;
-	min-height: 25%;
+	height: 23vh;
+	min-height: 23vh;
 	bottom: 0;
-	padding-top: .5em;
+	padding-top: 2vh;
     }
 
     .query {
-	padding-top: 1em;
+	padding-top: 3vh;
 	font-size: .7em;
     }
 
-
     .select {
-	width: 80%;
-	margin: 0 auto 1em auto;
+	width: 80vw;
+	margin: 0 auto 2vh auto;
     }
 }
 
