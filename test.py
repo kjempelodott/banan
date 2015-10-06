@@ -52,7 +52,7 @@ def main(args):
         
         try:
             db.feed(args.fpath, bankparser, args.skip_duplicates, 
-                    args.overwrite_duplicates, args.dry_run)
+                    args.overwrite_duplicates, args.delete, args.dry_run)
         except SystemExit:
             print('SystemExit raised')
             exit(0)
@@ -63,7 +63,7 @@ def main(args):
 
 def parse_args():
 
-    usage = '%s start | restart | stop | -f -b [-s|-o|--dry] | -h' % sys.argv[0]
+    usage = '%s start | restart | stop | -f -b [-n|-o|--dry] | -h' % sys.argv[0]
     desc = 'Feed bank statement to buzhug database or manage server'
     parser = ArgumentParser(usage=usage, description=desc)
 
@@ -72,19 +72,22 @@ def parse_args():
     db_group.add_argument('-b', '--bank', dest='bank', metavar='BANK', help='origin of FILE')
 
     db_opts = parser.add_argument_group('  options')
-    db_opts.add_argument('-s', '--skip-dup', dest='skip_duplicates',
+    db_opts.add_argument('-n', '--no-check-dup', dest='skip_duplicates',
                          const=False, default=True, action='store_const',
                          help='do not check for duplicates in buzhug')
     db_opts.add_argument('-o', '--overwrite', dest='overwrite_duplicates',
                          const=True, default=False, action='store_const',
                          help='overwrite duplicates in buzhug (overrides -s)')
+    db_opts.add_argument('-d', '--delete', dest='delete',
+                         const=True, default=False, action='store_const',
+                         help='delete instead of insert (overrides -s and -n)')
     db_opts.add_argument('--dry', dest='dry_run', 
                          const=True, default=False, action='store_const',
                          help='dry run: only print parsed transactions to console')
 
     server_group = parser.add_argument_group('# Server management')
     server_group.add_argument(dest='server_action', choices=('start','restart','stop'),
-                              help='start, restart or stop server')
+                              help='start, restart or stop server', nargs='?')
 
     return parser.parse_args(sys.argv[1:])
 
