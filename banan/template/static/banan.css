@@ -28,10 +28,7 @@ body {
 	height: 65vh;
 	margin: 0 auto; /* puts object in horizontal center */
 	font-size: .7em;
-    }
-
-    span {
-	line-height: 3em;
+	overflow: auto;
     }
     
     .control {
@@ -48,6 +45,7 @@ body {
     }
 
     .select {
+	line-height: 5em;
 	width: 80vw;
 	margin: 0 auto 2vh auto;
     }

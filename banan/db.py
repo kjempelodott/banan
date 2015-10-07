@@ -75,11 +75,30 @@ class TransactionsDB(object):
     # Queries
     get_amount = lambda rec: rec.amount_local    
 
-    def get_flot_json(self, sid, foreach='label', show='sum', data=None):
+    def results_as_text(self, results):
+
+        results.sort_by('date')
+        idx = 0
+        record = results[idx]
+        text_list = []
+        while True:
+            text_list.append('%s   %-40s\t%10.2f %s' %
+                             (record.date.isoformat(), 
+                              record.account[:40],
+                              record.amount,
+                              record.currency)); 
+            try:
+                idx += 1
+                record = results[idx]
+            except IndexError:
+                return text_list
+
+    
+    def assemble_data(self, sid, datatype='plot', foreach='label', show='sum', data=None):
 
         if sid in self._sessions:
             if self._sessions[sid]['raw_query'] == (foreach, show, data):
-                return self._sessions[sid]['json']
+                return self._sessions[sid]['flot'] if datatype == 'plot' else self._sessions[sid]['text']
 
         self._sessions[sid] = { 'raw_query' : (foreach, show, data) }
         get_amount = lambda rec: rec.amount_local
@@ -94,25 +113,32 @@ class TransactionsDB(object):
                 from_date = date(data[0].year, data[0].month, 1)
                 to_date = date(data[1].year + (data[1].month == 12), range(1,13)[data[1].month - 12], 1)
 
-            json = []
-            fields = ['amount_local', 'date']
+            data = {}
+            text = {}
             select = 'dat1 <= date < dat2 and label == l'
             for label in self.config.labels.iterkeys():
-                results = self.db.select(fields, select, l = label, dat1 = from_date, dat2 = to_date)
+                results = self.db.select(None, select, l = label, dat1 = from_date, dat2 = to_date)
                 value = sum(map(get_amount, results))
-                if value:
-                    json.append( [ label, value ] )
+                if abs(value) > 1:
+                    text[label] = self.results_as_text(results)
+                    strlen = len(text[label][-1])
+                    sumstr = '%10.2f %s' % (value, self.config.local_currency)
+                    text[label].append('-' * strlen)
+                    text[label].append(' ' * (strlen - len(sumstr)) + sumstr)
+                    data[label] = value
 
             if show == 'average':
                 ydelta = to_date.year - from_date.year
                 mdelta = to_date.month - from_date.month
                 delta = 12 * ydelta + mdelta
-                for item in json:
-                    item[1] /= delta
+                for key, val in data.iteritems():
+                    data[key] /= delta
 
-            self._sessions[sid]['json'] = json
-            return json
-
+            self._sessions[sid]['flot'] = data
+            self._sessions[sid]['text'] = text
+            return self._sessions[sid]['flot'] if datatype == 'plot' else self._sessions[sid]['text']
+            
         if foreach in ('month', 'year'):
             pass
             #result = self.db.select('\'%s\' in %s' % (foreach, data))
+

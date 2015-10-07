@@ -1,5 +1,5 @@
-.ctrl a::before,
-.ctrl a::after {
+.datatype a::before,
+.datatype a::after {
       	display: inline-block;
 	opacity: 0;
 	-webkit-transition: -webkit-transform 0.3s, opacity 0.2s;
@@ -7,7 +7,7 @@
 	transition: transform 0.3s, opacity 0.2s;
 }
 
-.ctrl a::before {
+.datatype a::before {
 	margin-right: 10px;
 	content: '[';
 	-webkit-transform: translateX(20px);
@@ -15,7 +15,7 @@
 	transform: translateX(20px);
 }
 
-.ctrl a::after {
+.datatype a::after {
 	margin-left: 10px;
 	content: ']';
 	-webkit-transform: translateX(-20px);
@@ -23,10 +23,12 @@
 	transform: translateX(-20px);
 }
 
-.ctrl a:hover::before,
-.ctrl a:hover::after,
-.ctrl a:focus::before,
-.ctrl a:focus::after {
+.datatype a.active::after,
+.datatype a.active::before,
+.datatype a:hover::before,
+.datatype a:hover::after,
+.datatype a:focus::before,
+.datatype a:focus::after {
 	opacity: 1;
 	-webkit-transform: translateX(0px);
 	-moz-transform: translateX(0px);

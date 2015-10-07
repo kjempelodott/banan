@@ -36,9 +36,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
 
             self.send_json(**query)
 
-#        except Exception as e:
-#            self.send_response(400)
-#            self.log_error(str(e))
+ #       except Exception as e:
+ #           self.send_response(400)
+ #           self.log_error(str(e))
             
 
     def do_GET(self):
@@ -80,8 +80,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
     def send_json(self, **kw):
 
         sessionid = self.sessionid()
-        json = HTTPRequestHandler.DB.get_flot_json(sessionid, **kw)
-        json_stream = StringIO(JSONEncoder().encode(json))
+        data = HTTPRequestHandler.DB.assemble_data(sessionid, **kw)
+        json_stream = StringIO(JSONEncoder().encode(data))
 
         self.send_response(200) 
         self.send_header('Cookie', 'sessionid=%s' % sessionid)
