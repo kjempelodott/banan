@@ -11,10 +11,11 @@ class Config:
         self.others_label = 'other'
         self.cash_flow_ignore = []
         self.labels = {}
-
         self.coding = 'utf-8'
         self.parse_conf(conf)
-        self.setup_local_currency()
+        self.setup_currency()
+        self.labels[self.incomes_label] = []
+        self.labels[self.others_label] = []
 
     def parse_conf(self, conf):
 
@@ -62,12 +63,14 @@ class Config:
                                 
             WARN('[line %s] in %s: unable to parse' % (line, conf))
  
-    def setup_local_currency(self):
-        if not self.local_currency and self.foreign_currency_label:
-            INFO('guessing local_currency from env')
-            locale.setlocale(locale.LC_MONETARY, '')
-            self.local_currency = locale.localeconv()['int_curr_symbol']
-            INFO('found \'%s\'' % self.local_currency)
+    def setup_currency(self):
+        if self.foreign_currency_label:
+            self.labels[self.foreign_currency_label] = []
+            if not self.local_currency:
+                INFO('guessing local_currency from env')
+                locale.setlocale(locale.LC_MONETARY, '')
+                self.local_currency = locale.localeconv()['int_curr_symbol']
+                INFO('found \'%s\'' % self.local_currency)
         
     def assign_label(self, entry):
         matches = {}
