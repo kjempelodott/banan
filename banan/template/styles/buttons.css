@@ -36,47 +36,56 @@
 }
 
 
-.query a {
-	padding: 6px 3px 3px 8px;
+.query a, .select a {
+    padding: 6px 3px 3px 8px;
 }
 
-.query a::before,
-.query a::after  {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	border: 3px solid rgba(0,0,0,0.1);
-	content: '';
-	-webkit-transition: -webkit-transform 0.3s, opacity 0.3s;
-	-moz-transition: -moz-transform 0.3s, opacity 0.3s;
-	transition: transform 0.3s, opacity 0.3s;
+.query a::before, 
+.select a::before,
+.query a::after,
+.select a::after  {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 3px solid rgba(0,0,0,0.1);
+    content: '';
+    -webkit-transition: -webkit-transform 0.3s, opacity 0.3s;
+    -moz-transition: -moz-transform 0.3s, opacity 0.3s;
+    transition: transform 0.3s, opacity 0.3s;
 }
 
-.query a::after  {
-        border: 2px solid;
-	border-color: #fff;
-	opacity: 0;
-	-webkit-transform: translateY(-7px) translateX(6px);
-	-moz-transform: translateY(-7px) translateX(6px);
-	transform: translateY(-7px) translateX(6px);
+.query a::after,
+.select a::after {
+    border: 2px solid;
+    border-color: #fff;
+    opacity: 0;
+    -webkit-transform: translateY(-7px) translateX(6px);
+    -moz-transform: translateY(-7px) translateX(6px);
+    transform: translateY(-7px) translateX(6px);
 }
 
-.query a.active::before,
+.query a.active::before, 
+.select a.active::before,
 .query a:hover::before,
-.query a:focus::before {
-	opacity: 0;
-	-webkit-transform: translateY(5px) translateX(-5px);
-	-moz-transform: translateY(5px) translateX(-5px);
-	transform: translateY(5px) translateX(-5px);
+.select a:hover::before,
+.query a:focus::before,
+.select a:focus::before {
+    opacity: 0;
+    -webkit-transform: translateY(5px) translateX(-5px);
+    -moz-transform: translateY(5px) translateX(-5px);
+    transform: translateY(5px) translateX(-5px);
 }
 
 .query a.active::after,
+.select a.active::after,
 .query a:hover::after,
-.query a:focus::after {
-	opacity: 1;
-	-webkit-transform: translateY(0px) translateX(0px);
-	-moz-transform: translateY(0px) translateX(0px);
-	transform: translateY(0px) translateX(0px);
+.select a:hover::after,
+.query a:focus::after,
+.select a:focus::after {
+    opacity: 1;
+    -webkit-transform: translateY(0px) translateX(0px);
+    -moz-transform: translateY(0px) translateX(0px);
+    transform: translateY(0px) translateX(0px);
 }

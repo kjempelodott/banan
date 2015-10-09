@@ -5,53 +5,73 @@ body {
     font-family: sans-serif;
     margin: 0;
     overflow: auto;
+    overflow-x: hidden;
     background-color: #f19f0f;
     color: #ffffff;
 }
 
-@media screen {
-
-    .container, .control {
-	position: absolute;
-	width: 100vw;
-	background-color: #435a6b;
-    }
-
-    .container {
-	padding: 5vh 0;
-	height: 65vh;
-	min-height: 65vh;
-    }
-
-    .placeholder {
-	width: 60vw;
-	height: 65vh;
-	margin: 0 auto; /* puts object in horizontal center */
-	font-size: .7em;
-	overflow: auto;
-    }
-    
-    .control {
-	background-color: #f19f0f;
-	height: 23vh;
-	min-height: 23vh;
-	bottom: 0;
-	padding-top: 2vh;
-    }
-
-    .query {
-	padding-top: 3vh;
-	font-size: .7em;
-    }
-
-    .select {
-	line-height: 5em;
-	width: 80vw;
-	margin: 0 auto 2vh auto;
-    }
+.container, .control {
+    position: absolute;
+    width: 100vw;
 }
 
-a {
+.container {
+    padding: 5vh 0;
+    height: 65vh;
+    min-height: 65vh;
+    background-color: #435a6b;
+}
+
+.placeholder {
+    width: 60vw;
+    height: 65vh;
+    margin: 0 auto; /* puts object in horizontal center */
+    font-size: .8em;
+    overflow: auto;
+}
+    
+.control {
+    background-color: #f19f0f;
+    height: 23vh;
+    min-height: 23vh;
+    bottom: 0;
+    padding-top: 2vh;
+}
+
+.query {
+    padding-top: 2vh;
+}
+
+.query, .select {
+    font-size: .7em;
+    margin: 0 auto;
+    width: 80vw;
+    line-height: 3em;
+}
+
+.select {
+    line-height: 3em;
+    padding-bottom: 2vh;
+}
+
+.symbol {
+    vertical-align: middle;
+    font-size: 2em;
+}
+
+input
+{
+    font-weight: lighter;
+    font-family: sans-serif;
+    font-size: 1em;
+    height: 1.5em;
+    width: 10em;
+    background-color: #f19f0f;
+    border: solid 2px rgba(0,0,0,0.05);
+    color: #ffffff;
+}
+
+a, input {
     outline: none;
     position: relative;
     text-decoration: none;
