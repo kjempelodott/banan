@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------
-# Settings and customizable list of transaction labels
+# Transaction categories (labels) and settings
 #
 # Syntax:
 #  [label1]
@@ -37,8 +37,8 @@
 # a warning will be issued, and the longest matching label
 # will be assigned. Wildcards (*) are supported.
 #
-# The settings section currently supports the following
-# options:
+# The settings section currently the following options:
+#
 #    local_currency	      local currency (e.g. USD)
 #     			      DEFAULT: guessed from os.env
 #
@@ -48,8 +48,8 @@
 #			      match
 #			      DEFAULT: <none>
 #
-#    incomes_label	      label assigned to positive
-#    			      transactions
+#    incomes_label	      label assigned to
+#    			      transactions with +amount
 #			      DEFAULT: income
 #
 #    cash_flow_ignore	      transactions assigned the
