@@ -1,4 +1,4 @@
-import sys, os, signal, fcntl, time, re
+import sys, os, signal, fcntl, time, re, socket
 from datetime import date, datetime
 from posixpath import splitext
 from shutil import copyfileobj
@@ -9,8 +9,8 @@ from StringIO import StringIO
 from SocketServer import TCPServer
 from BaseHTTPServer import BaseHTTPRequestHandler
 
-from config import Config
-from db import TransactionsDB
+from .db import TransactionsDB
+from .config import Config
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler, object):
@@ -25,20 +25,20 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
 
     def do_POST(self):
 
-#        try:
+        try:
             self.content_type = 'application/json'
             query = {}
-
+            
             if 'Content-Type' in self.headers:            
                 assert(self.headers['Content-Type'].startswith('application/x-www-form-urlencoded'))
                 data = self.rfile.read(int(self.headers['Content-Length']))
                 query = dict(item.split('=', 1) for item in data.split('&'))
-
+                
             self.send_json(**query)
 
- #       except Exception as e:
- #           self.send_response(400)
- #           self.log_error(str(e))
+        except Exception as e:
+            self.send_response(400)
+            self.log_error(str(e))
             
 
     def do_GET(self):
@@ -57,18 +57,16 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
     def sessionid(self):
 
         try:
-            return re.findall('sessionid=([-\w]+)', self.headers['Cookie'])[0]
+            return True, re.findall('sessionid=([-\w]+)', self.headers['Cookie'])[0]
         except:
-            return uuid4()
+            return False, uuid4()
         
     def handle_static(self):
 
         f = open('.' + self.path, 'rb')
         fs = os.fstat(f.fileno())
-        sessionid = self.sessionid()        
         
         self.send_response(200)
-        self.send_header('Cookie', 'sessionid=%s' % sessionid)
         self.send_header('Content-Type', self.content_type)
         self.send_header('Content-Length', str(fs.st_size))
         self.send_header('Last-Modified', self.date_time_string(fs.st_mtime))
@@ -79,18 +77,32 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
         
     def send_json(self, **kw):
 
-        sessionid = self.sessionid()
-        data = HTTPRequestHandler.DB.assemble_data(sessionid, **kw)
+        valid, data = False, {}
+        has_sessionid, sessionid = self.sessionid()
+        if self.path == '/labels.json':
+            valid, data = True, HTTPRequestHandler.DB.config.labels.keys()
+        else:
+            valid, data = HTTPRequestHandler.DB.assemble_data(sessionid, **kw)
+        
         json_stream = StringIO(JSONEncoder().encode(data))
 
-        self.send_response(200) 
-        self.send_header('Cookie', 'sessionid=%s' % sessionid)
-        self.send_header('Content-Type', self.content_type);
-        self.send_header('Content-Length', json_stream.len)
-        self.end_headers()
+        if valid:
+            self.send_response(200)
 
-        copyfileobj(json_stream, self.wfile)
+            if not has_sessionid:
+                self.send_header('Set-Cookie', 'sessionid=%s' % sessionid)
+                self.log_message('New session attached: ' + str(sessionid))
 
+            self.send_header('Content-Type', self.content_type);
+            self.send_header('Content-Length', json_stream.len)
+            self.end_headers()
+
+            copyfileobj(json_stream, self.wfile)
+
+        else:
+            self.send_response(400)
+            self.end_headers()
+            self.log_error(data)
 
 class Server(TCPServer, object):    
 
@@ -108,8 +120,8 @@ class Server(TCPServer, object):
     def start(self):
 
         try:
-            super(Server, self).__init__(('127.0.0.1', 8000), HTTPRequestHandler)
             print('starting server ...')
+            super(Server, self).__init__(('127.0.0.1', 8000), HTTPRequestHandler)
             
             Server.create_daemon()
             Server.write_pid()
@@ -150,6 +162,7 @@ class Server(TCPServer, object):
     @staticmethod
     def stop():
         try:
+            HTTPRequestHandler.DB.clean_sessions()
             pid = Server.read_pid()
             if pid:
                 print('stopping process %s ...' % pid)
