@@ -3,17 +3,18 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-  <link href="banan/template/static/banan.css" rel="stylesheet" type="text/css">
-  <link href="banan/template/static/effects.css" rel="stylesheet" type="text/css">
+  <link href="banan/template/styles/style.css" rel="stylesheet" type="text/css">
+  <link href="banan/template/styles/buttons.css" rel="stylesheet" type="text/css">
 
   <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 
-  <script src="banan/template/static/jquery.flot.js" type="text/javascript"></script>
-  <script src="banan/template/static/jquery.flot.categories.js" type="text/javascript"></script>
-  <script src="banan/template/static/bananplot.js" type="text/javascript"></script>
+  <script src="banan/template/javascript/flot/jquery.flot.js" type="text/javascript"></script>
+  <script src="banan/template/javascript/flot/jquery.flot.categories.js" type="text/javascript"></script>
 
-  <script src="banan/template/static/buttons.js" type="text/javascript"></script>
-
+  <script src="banan/template/javascript/data.js" type="text/javascript"></script>
+  <script src="banan/template/javascript/events.js" type="text/javascript"></script>
+  <script src="banan/template/javascript/at.doc.ready.js" type="text/javascript"></script>
+  
 </head>
 <body>
 
@@ -29,7 +30,6 @@
   </span>
 
   <div class="query">
-
     <span class="foreach">
       for each 
       <a class="inactive" id="month">month</a> 
@@ -42,13 +42,18 @@
       <a class="active" id="sum">sum</a> 
       <a class="inactive" id="average">average</a>
     </span>
+  </div>
 
-    <div class="select">
-      <span class="select">
-	<a style="display: none;" id="labels">labels</a>
-	<a id="period">period</a>
-      </span>
-    </div>
+  <div class="select">
+
+    <span class="active" id="input">
+      <span class="symbol">⌨</span>
+      <input id="period" type="text" maxlength="13"></input>
+      <span class="symbol">↲</span>
+    </span>
+
+    <span class="inactive" style="display: none;" id="labels">
+    </span>
 
   </div>
 
@@ -56,14 +61,3 @@
 
 </body>
 </html>
-
-<!-- if MONTH|YEAR, 
-     display only SUM
-     display *LABELS
-
-     if LABEL
-     display SUM and AVERGAE
-     display from-FORM and to-FORM 
-!-->
-
-
