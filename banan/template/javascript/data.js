@@ -126,4 +126,6 @@ function getData() {
 	    var frame = $('#placeholder');
 	    frame.html('BAD REQUEST :(');
 	});
+
+    $('html, body').animate({ scrollTop: 0 }, 'medium');
 }
