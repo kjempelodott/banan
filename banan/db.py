@@ -99,7 +99,7 @@ class TransactionsDB(object):
 
         try:
 
-            session = self._sessions.get(sid, None)
+            session = self._sessions.get(sid, {})
             if session:
                 if session['raw_query'] == (foreach, show, select):
                     # Same query, return cached result
@@ -107,7 +107,14 @@ class TransactionsDB(object):
                         self._sessions[sid]['flot_' + show] if datatype == 'plot' else \
                         self._sessions[sid]['text']
 
+            # Helpers
             get_amount = lambda rec: rec.amount_local
+            M = range(1,13)
+            total = strlen = 0
+
+            data = {}
+            text = {}
+            query = 'date1 <= date < date2 and label == l'
 
             if foreach == 'label':
                 
@@ -124,13 +131,7 @@ class TransactionsDB(object):
                 if len(dates) == 2:
                     date2 = date(int(dates[1][2:]), int(dates[1][:2]), 1)
                 if date2 == date1:
-                    date2 = date(date1.year + (date1.month == 12), range(1,13)[date1.month - 12], 1)
-
-                data = {}
-                text = {}
-                balance = 0
-                strlen = 0
-                query = 'date1 <= date < date2 and label == l'
+                    date2 = date(date1.year + (date1.month == 12), M[date1.month - 12], 1)
 
                 for label in self.config.labels.iterkeys():
 
@@ -141,7 +142,7 @@ class TransactionsDB(object):
                         data[label] = value
 
                         if label not in self.config.cash_flow_ignore:
-                            balance += value
+                            total += value
                         else:
                             label += '*'
 
@@ -151,34 +152,63 @@ class TransactionsDB(object):
                         text[label].append('-' * strlen)
                         text[label].append(' ' * (strlen - len(sumstr)) + sumstr)
 
-                # All good, set new session attributes
-                session = self._sessions[sid] = { 'raw_query' : (foreach, show, select) }
-                session['date1'], session['date2'] = date1, date2
-                session['flot_sum'] = data
-                session['text'] = text
-
                 ydelta = date2.year - date1.year
                 mdelta = date2.month - date1.month
                 delta = 12 * ydelta + mdelta
 
                 session['flot_average'] = {}
-                for key, val in session['flot_sum'].iteritems():
+                for key, val in data.iteritems():
                     session['flot_average'][key] = val/delta
 
-                if text:
-                    session['text']['***'] = ['-' * strlen,
-                                              'SUM: %10.2f %s' % (balance, self.config.local_currency),
-                                              '-' * strlen]
 
-                return True, session['flot_' + show] if datatype == 'plot' else session['text']
-    
+            elif foreach in ('month', 'year'):
+                
+                # New query
+                date1 = date2 = first = datetime.now()
+                if foreach == 'month':
+                    first = date(date1.year - 1, date1.month, 1)
+                    date1 = date(date1.year - (date1.month == 1), M[date1.month - 2], 1)
+                    date2 = date(date2.year, date2.month, 1)
+                else:
+                    first = date(date1.year - 9, 1, 1)
+                    date1 = date(date1.year, 1, 1)
+                    date2 = date(date2.year + 1, 1, 1)
 
-            if foreach in ('month', 'year'):
-                raise 
-                #result = self.db.select('\'%s\' in %s' % (foreach, data))
+                while date1 >= first:
 
-            raise
-            
+                    results = self.db.select(None, query, l = select, date1 = date1, date2 = date2)
+                    value = sum(map(get_amount, results))
+
+                    date2 = date1 
+                    if foreach == 'month':
+                        key = date1.strftime('%Y.%m') 
+                        date1 = date(date2.year - (date2.month == 1), M[date2.month - 2], 1)
+                    else:
+                        key = str(date1.year)
+                        date1 = date(date2.year - 1, 1, 1)
+
+                    data[key] = value
+                    total += value
+                    if results:
+                        text[key] = self.results_as_text(results)
+                        strlen = len(text[key][-1])
+                        sumstr = '%10.2f %s' % (value, self.config.local_currency)
+                        text[key].append('-' * strlen)
+                        text[key].append(' ' * (strlen - len(sumstr)) + sumstr)
+
+
+            # All good, set new session attributes
+            session = self._sessions[sid] = { 'raw_query' : (foreach, show, select) }
+            session['flot_sum'] = data
+            session['text'] = text
+
+            if session['text']:
+                session['text']['***'] = ['-' * strlen,
+                                          'SUM: %10.2f %s' % (total, self.config.local_currency),
+                                          '-' * strlen]
+
+            return True, session['flot_' + show] if datatype == 'plot' else session['text']
+
         except Exception as e:
             return False, str(e)
                 
