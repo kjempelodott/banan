@@ -1,17 +1,17 @@
 function isValid() {
     if ($('#label')[0].className == 'active') {
-	if ($('#labels')[0].className == 'active') {
+	if ($('#labels .active').length) {
+	    return false;
+	}
+	if ($('#period')[0].textLength < 6) {
 	    return false;
 	}
     }
     else {
-	if ($('#input')[0].className == 'active') {
-	    return false;
-	}
 	if ($('#average')[0].className == 'active') {
 	    return false;
 	}
-	if (!$('.select .active .active').length) {
+	if (!$('#labels .active').length) {
 	    return false;
 	}
     }
@@ -101,14 +101,13 @@ function getData() {
     var query = {};
     $('a.active').each(function(index, elem) {
 	var queryVar = elem.closest('span').className;
+	console.log(queryVar)
+	console.log(elem)
 	query[queryVar] = elem.id;
     });
-    
-    var select = $('.select .active');
-    if (select.id == 'labels') {
-	query['select'] = $('.select .active .active').val();
-    }
-    else {
+
+    console.log(query);
+    if (!query.hasOwnProperty('select')) {
 	query['select'] = $('#period').val();
     }
 

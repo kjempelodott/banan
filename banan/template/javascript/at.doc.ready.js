@@ -15,9 +15,10 @@ $(function() {
     $('#period').val(month + year);
     getData();
 
+    // Get list of all labels
     $.get('labels.json', function(labels) {
 	labels.sort();
-	var div = $('.select')[0];
+	var div = $('.dataselect')[0];
 	var span = $('#labels');
 	lineWidth = 0;
 	maxWidth = div.offsetWidth;
@@ -39,11 +40,8 @@ $(function() {
 	    tmp.remove()
 	    lineWidth += delta;
 
-	    span.append('<a class="inactive">' + label + '</a>');
-	});
-
-	$.each(span.children, function(index, elem) {
-	    elem.addEventListener('click', eventClick, false);
+	    var newElem = $('<a class="inactive" id="' + label + '">' + label + '</a>').appendTo(span);
+	    newElem[0].onclick = function () { return clickEvent(this) };
 	});
     });
 

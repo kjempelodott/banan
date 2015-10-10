@@ -42,14 +42,14 @@ body {
     padding-top: 2vh;
 }
 
-.query, .select {
+.query, .dataselect {
     font-size: .7em;
     margin: 0 auto;
     width: 80vw;
     line-height: 3em;
 }
 
-.select {
+.dataselect {
     line-height: 3em;
     padding-bottom: 2vh;
 }

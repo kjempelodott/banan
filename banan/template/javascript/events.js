@@ -4,12 +4,12 @@ function clickEvent(button) {
     if (button.className == 'active') {
 	return false;
     }
-    
+
     // deactivate other button(s) and activate clicked button
     var span = button.closest('span').className;
     $('.' + span + ' .active').attr('class', 'inactive');
     button.className = 'active';
-    
+
     // change visibility
     if (span == 'foreach') {
 	if (button.id == 'label') {
@@ -18,17 +18,15 @@ function clickEvent(button) {
 	    $('#input').css('display', 'block');
 	    //disable
 	    $('#labels').css('display', 'none');
-	    $('#labels').attr('class', 'inactive');
+	    $('#labels .active').attr('class', 'inactive');
 	}
 	else {
 	    //enable
 	    $('#labels').css('display', 'block');
-	    $('#labels').attr('class', 'active');
 	    // disable
 	    $('#average').css('visibility', 'hidden');
 	    $('#average').attr('class', 'inactive');
 	    $('#input').css('display', 'none');
-	    $('#input').attr('class', 'inactive');
 	}
     }
     
