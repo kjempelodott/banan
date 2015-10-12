@@ -152,8 +152,8 @@ class CSVParser(Parser):
 
             yield entry
 
-    @classmethod
-    def _parse(cls, entry):
+    @staticmethod
+    def _parse(entry):
         pass
 
   
@@ -174,9 +174,10 @@ class yAbankCSVParser(CSVParser):
 
     @staticmethod
     def _parse(entry):
+        # Special actions
         try:
             entry['currency'], entry['amount'] = \
-                yAbankCSVParser._RE_NONLOCAL.match(account).groups()
+                yAbankCSVParser.RE_NONLOCAL.match(account).groups()
         except:
             entry['currency'] = 'NOK'
 
