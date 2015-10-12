@@ -12,10 +12,11 @@ $(function() {
     month = ('0' + month.toString()).slice(-2);
     year = year.toString();
 
-    $('#period').val(month + year);
+    $('#fromPeriod').val(month + year);
+    $('#toPeriod').val('');
     getData();
 
-    // Get list of all labels
+    // get list of all labels
     $.get('labels.json', function(labels) {
 	labels.sort();
 	var div = $('.dataselect')[0];

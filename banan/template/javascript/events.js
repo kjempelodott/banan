@@ -23,6 +23,7 @@ function clickEvent(button) {
 	else {
 	    //enable
 	    $('#labels').css('display', 'block');
+	    $('#sum').attr('class', 'active');
 	    // disable
 	    $('#average').css('visibility', 'hidden');
 	    $('#average').attr('class', 'inactive');
@@ -43,29 +44,11 @@ $(function() {
 
 
 $(function() {
-    $('#period').keydown(function(e) {
-	// enter
+    // selects the inputs fromPeriod and toPeriod
+    $('input').keydown(function(e) {
+	// enter button
 	if (e.keyCode == 13) {
 	    getData();
-	    return true;
-	}
-	// do default for f#, backspace, delete, navigation, alt, ctrl and meta
-	if ((e.keyCode > 111 && e.keyCode < 124) ||
-	    e.keyCode == 8 || e.keyCode == 46 ||
-	    e.keyCode == 35 || e.keyCode == 36 ||
-	    e.keyCode == 37 || e.keyCode == 39 ||
-	    e.altKey || e.ctrlKey || e.metaKey) {
-	    return true;
-	}
-	// ignore all but numbers
-	var charCode = e.key.charCodeAt()
-	if (charCode < 48 || charCode > 58) {
-	    return false;
-	}
-	
-	var period = this;
-	if (period.textLength == 6) {
-	    period.value += '–';
 	}
 	return true;
     });

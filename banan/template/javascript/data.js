@@ -3,7 +3,7 @@ function isValid() {
 	if ($('#labels .active').length) {
 	    return false;
 	}
-	if ($('#period')[0].textLength < 6) {
+	if ($('#fromPeriod')[0].textLength < 6) {
 	    return false;
 	}
     }
@@ -101,14 +101,11 @@ function getData() {
     var query = {};
     $('a.active').each(function(index, elem) {
 	var queryVar = elem.closest('span').className;
-	console.log(queryVar)
-	console.log(elem)
 	query[queryVar] = elem.id;
     });
 
-    console.log(query);
     if (!query.hasOwnProperty('select')) {
-	query['select'] = $('#period').val();
+	query['select'] = $('#fromPeriod').val() + '-' + $('#toPeriod').val();
     }
 
     // post and plot or print data
