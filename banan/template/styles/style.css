@@ -16,42 +16,91 @@ body {
 }
 
 .container {
-    padding: 5vh 0;
-    height: 65vh;
-    min-height: 65vh;
     background-color: #435a6b;
 }
 
 .placeholder {
-    width: 60vw;
-    height: 65vh;
     margin: 0 auto; /* puts object in horizontal center */
-    font-size: .8em;
     overflow: auto;
 }
-    
+
 .control {
     background-color: #f19f0f;
-    height: 23vh;
-    min-height: 23vh;
     bottom: 0;
     padding-top: 2vh;
 }
 
-.query {
-    padding-top: 2vh;
+
+@media screen and (orientation: landscape) {
+    .container {
+	padding: 5vh 0;
+	height: 65vh;
+	min-height: 65vh;
+    }
+
+    .placeholder {
+	width: 60vw;
+	height: 65vh;
+    }
+    
+    .control {
+        height: 23vh;
+	min-height: 23vh;
+    }
+
+    .query, .dataselect {
+	width: 80vw;
+	line-height: 3em;
+    }
 }
 
-.query, .dataselect {
+
+@media screen and (orientation: portrait) {
+    .container {
+	padding: 5vh 0;
+	height: 40vh;
+	min-height: 40vh;
+    }
+
+    .placeholder {
+	width: 90vw;
+	height: 40vh;
+    }
+
+    .control {
+        height: 48vh;
+	min-height: 48vh;
+    }
+
+    .query, .dataselect {
+	width: 90vw;
+	line-height: 3.5em;
+    }
+    
+    .foreach, .show {
+	display: block;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .container {
+	font-size: .7em;
+    }
+    .control {
+	font-size: .8em;
+    }
+}
+
+.query {
+    padding-top: 2vh;
     font-size: .7em;
     margin: 0 auto;
-    width: 80vw;
-    line-height: 3em;
 }
 
 .dataselect {
-    line-height: 3em;
     padding-bottom: 2vh;
+    font-size: .7em;
+    margin: 0 auto;
 }
 
 .symbol {
