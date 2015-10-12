@@ -36,7 +36,7 @@ class Parser(object):
             ERROR('failed to parse amount ' + value)
 
     @staticmethod
-    def post_process(db, **kw):
+    def post_process(db, *args, **kw):
         pass
 
 
@@ -122,8 +122,8 @@ class yAbankPDFParser(Parser):
 
 
     @staticmethod
-    def post_process(db, offset):
-        if db._pos.next_id > offset:
+    def post_process(db, added):
+        if added:
             # Remove the last entry, the invoice sum
             db.delete(db[db._pos.next_id - 1])
             INFO('  deleted last bogus entry')

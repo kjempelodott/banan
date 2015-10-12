@@ -17,7 +17,14 @@ map_of_maps = {
 
 
 def main(args):
-    
+
+    conf = Config()
+    db = TransactionsDB(conf)
+
+    if args.update:
+        db.update_labels()
+        Server.update_db()
+
     if args.fpath:
         ext = os.path.splitext(args.fpath)[1]
         bankparser = None
@@ -34,9 +41,6 @@ def main(args):
         except KeyError:
             print('ERROR: no known %s %s parser' % (args.bank, ext))
             exit(0)
-
-        conf = Config()
-        db = TransactionsDB(conf)
         
         try:
             db.feed(args.fpath, bankparser, args.skip_duplicates, 
@@ -45,11 +49,8 @@ def main(args):
             print('SystemExit raised')
             exit(0)
         finally:
-            print('Closing database ...')
+            print('closing database ...')
             db.close()
-
-    if args.update:
-        print 'update'
 
     if args.server_action:
         if args.server_action == 'stop':

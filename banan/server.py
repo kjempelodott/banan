@@ -9,8 +9,8 @@ from StringIO import StringIO
 from SocketServer import TCPServer
 from BaseHTTPServer import BaseHTTPRequestHandler
 
-from .db import TransactionsDB
-from .config import Config
+from db import TransactionsDB
+from config import Config
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler, object):
@@ -139,6 +139,11 @@ class Server(TCPServer, object):
         self.start()
 
     @staticmethod
+    def update_db():
+        HTTPRequestHandler.DB.close()
+        HTTPRequestHandler.DB.open()
+
+    @staticmethod
     def create_daemon():
 
         pid = os.fork()
@@ -162,7 +167,6 @@ class Server(TCPServer, object):
     @staticmethod
     def stop():
         try:
-            HTTPRequestHandler.DB.clean_sessions()
             pid = Server.read_pid()
             if pid:
                 print('stopping process %s ...' % pid)
