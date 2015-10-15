@@ -4,18 +4,18 @@ Collect all you bank statements in various formats in one place. A simple web in
 
 Unless your bank is yAbank or BankNorwegian, you have to add your own parser class to [banan/parser.py](https://github.com/kjempelodott/banan/tree/master/banan/parser.py). It must be a subclass of `Parser`. If possible, export your bank statements to CSV and make a subclass of `CSVParser` (least pain). The new class must be registered in `map_of_maps` in [main](https://github.com/kjempelodott/banan/tree/master/main).
 
-Please read [labels.conf.example](https://github.com/kjempelodott/banan/tree/master/labels.conf.example) to figure out how to put labels on different transactions. There are also a few options that can be set. Remember to save you config file as `labels.conf`.
+Please read [labels.conf.example](https://github.com/kjempelodott/banan/tree/master/labels.conf.example) to figure out how to put labels on different transactions. There are also a few options that can be set. Remember to save your config file as `labels.conf`.
 
-After you have added your FooBank CSV parser
+After you have added your FooBank BAZ parser
 
 ```python
-map_of_maps = { 'foobank' : { '.csv' : FooBankCSVParser } }
+map_of_maps = { 'foobank' : { '.baz' : FooBankBAZParser } }
 ```
 
 and created a `labels.conf`, insert your bank statement file(s) with the command
 
 ```
-./main -f foobar.csv -b foobank
+./main -f foobar.baz -b foobank
 ```
 
 #### Web interface
@@ -32,8 +32,8 @@ Note that the web interface can only *read* from the database. Any adding, updat
 
 ##### Requirements:
 * python-buzhug
-* internet connection (jQuery is fecthed from Google)
-* a browser
+* internet connection (jQuery is fetched from Google)
+* a JavaScript-enabled browser
 * (python-pypdf)
 
 ##### TODO
