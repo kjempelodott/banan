@@ -1,5 +1,5 @@
 import re, locale
-from logger import *
+from banan.logger import *
 
 class Config:
     
@@ -11,7 +11,6 @@ class Config:
         self.others_label = 'other'
         self.cash_flow_ignore = []
         self.labels = {}
-        self.coding = 'utf-8'
         self.parse_conf(conf)
         self.setup_currency()
         self.labels[self.incomes_label] = []
@@ -19,22 +18,15 @@ class Config:
 
     def parse_conf(self, conf):
 
-        f = open(conf, 'r')
-        try:
-            self.coding = re.match('# -\*- coding: ([-\w]+) -\*-', f.readline()).groups()[0]
-        except:
-            WARN('assuming utf-8 encoded config file')
+        f = open(conf, 'rb')
         f.seek(0,0)
   
         section = None
         SECTION = re.compile('^\[(.+)\]$')
         SETTING = re.compile('(\w+)=(.+)')
 
-        content = f.readlines()
-        if self.coding != 'utf-8':
-            content = content.decode(self.coding).encode('utf-8').split('\n')
+        content = f.read().decode().split('\n')
         for line in content:
-
             line = line.strip()
             if not line or line[0] == '#':
                 continue 
@@ -47,7 +39,9 @@ class Config:
                 continue
             
             if section in self.labels:
-                self.labels[section].append(re.compile(line.replace('*','.*').strip()))
+                self.labels[section].append(
+                    re.compile(line.lower().replace('*','.*').strip())
+                )
                 continue
 
             is_setting = SETTING.match(line)
@@ -58,46 +52,45 @@ class Config:
                     if var == 'cash_flow_ignore':
                         self.cash_flow_ignore = [v.strip() for v in val.split(',')]
                     continue
-                WARN('[%s] setting not recognized' % var)
+                WARN('unknwon setting \'%s\'' % var)
                 continue
                                 
-            WARN('[line %s] in %s: unable to parse' % (line, conf))
+            WARN('unable to parse:\n  %s' % line)
  
     def setup_currency(self):
-        if self.foreign_currency_label:
-            self.labels[self.foreign_currency_label] = []
-            if not self.local_currency:
-                INFO('guessing local_currency from env')
-                locale.setlocale(locale.LC_MONETARY, '')
-                self.local_currency = locale.localeconv()['int_curr_symbol']
-                INFO('found \'%s\'' % self.local_currency)
-        
-    def assign_label(self, entry):
-        matches = {}
+        if self.foreign_currency_label and not self.local_currency:
+            locale.setlocale(locale.LC_MONETARY, '')
+            self.local_currency = locale.localeconv()['int_curr_symbol']
+            INFO('using local_currency from env: %s' % self.local_currency)
 
-        account = entry['account']
-        for label, keywords in self.labels.iteritems():
+    def assign_label(self, record):
+        matches = {}
+        account = record['account'].lower()
+        for label, keywords in self.labels.items():
             for kw in keywords:
                 if kw.sub('', account) != account:
                     matches[kw] = label
                     break
 
         if len(matches) == 1:
-            return matches.popitem()[1]
+            record['label'] = matches.popitem()[1]
+            return
 
         if not matches:
-            currency = entry['currency']
-            amount = entry['amount']
+            currency = record['currency']
+            amount = record['amount']
             if currency != self.local_currency and self.foreign_currency_label:
-                return self.foreign_currency_label
-            if amount > 0:
-                return self.incomes_label
-            return self.others_label
+                record['label'] = self.foreign_currency_label
+            elif amount > 0:
+                record['label'] = self.incomes_label
+            else:
+                record['label'] = self.others_label
+            return
         
         relen = lambda r: len(r.pattern)
         label = matches[sorted(matches.keys(), key=relen, reverse=True)[0]]
-        rest = matches.values()
+        rest = list(matches.values())
         rest.remove(label)
-        WARN('[%s] matches several labels' % account,
-             '  --> %s <--, %s ' % (label, ', '.join(rest)))
-        return label
+        INFO('%s\n  matches several labels\n  \033[1m%s\033[0m, %s' %
+             (record['account'], label, ', '.join(rest)))
+        record['label'] = label

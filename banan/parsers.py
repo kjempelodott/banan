@@ -2,7 +2,7 @@
 
 import re, os
 from datetime import date, datetime
-from logger import *
+from banan.logger import *
     
 
 class Parser(object):
@@ -13,27 +13,21 @@ class Parser(object):
     def read_file(cls, fpath):
         INFO('[%s] %s' % (cls.__name__, fpath))
         try:
-            ext = os.path.splitext(fpath)[1]
-            if ext != cls.FILEEXT:
-                ERROR('[%s] can not parse %s' % (cls.__name__, ext))
-                return
-
             data = open(fpath, 'rb').read()
             return data
-
         except IOError: 
-            ERROR('[%s] could not be opened for reading ' % fpath)
+            ERROR('%s could not be opened for reading ' % fpath)
             raise SystemExit
 
     @staticmethod
-    def parse_amount(value, sign = 1):
+    def parse_amount(value, sign=1):
         _value = value.replace(' ', '')
         try:
             m = Parser.RE_NO.match(_value).groups()
-            _value = m[0].replace('.','') + '.' + (m[2] if m[2] else '00')
+            _value = m[0].replace('.', '') + '.' + (m[2] if m[2] else '00')
             return sign * float(_value)
         except:
-            ERROR('failed to parse amount ' + value)
+            ERROR('failed to parse amount \'%s\'' % value)
 
     @staticmethod
     def post_process(db, *args, **kw):
@@ -41,8 +35,6 @@ class Parser(object):
 
 
 class yAbankPDFParser(Parser):
-
-    FILEEXT   = '.pdf'
 
     # TODO: does not match "innbetaling m/kid 4.799,99 ...." yes, it does?!
     RE_CREDIT = \
@@ -75,7 +67,6 @@ class yAbankPDFParser(Parser):
         except:
             WARN('failed to extract year from pdf')
             yAbankPDFParser.YYYY = date.today().year
-
 
     @staticmethod
     def parse(fpath):
@@ -122,46 +113,48 @@ class yAbankPDFParser(Parser):
 
 
     @staticmethod
-    def post_process(db, added):
-        if added:
+    def post_process(db, bogus=None):
+        if bogus:
             # Remove the last entry, the invoice sum
-            db.delete(db[db._pos.next_id - 1])
-            INFO('  deleted last bogus entry')
-          
+            db.remove(bogus)
+            INFO('  removed invoice sum entry')
+
+
 class CSVParser(Parser):
 
     @classmethod
-    def parse(cls, fpath):
-        data = cls.read_file(fpath)
-        data = data.decode(cls.CHARSET).encode('utf-8')
+    def read_file(cls, fpath):
+        data = super().read_files(fpath)
+        data = data.decode(cls.CHARSET)
+        return data.split('\n')[cls.SKIP:]
         
+    @classmethod
+    def parse(cls, fpath):
         entry = {}
-        for line in data.split('\n')[cls.SKIP:]:
-
+        for line in cls.read_file(fpath):
             if not line:
                 continue
-            line = line.split(cls.DELIM)
-
+            line = [cell.strip('"') for cell in line.split(cls.DELIM)]
             entry['date']         = datetime.strptime(line[cls.DATEIDX], cls.DATEFORMAT).date()
             entry['account']      = line[cls.ACCTIDX]
-            entry['amount']       = CSVParser.parse_amount(line[cls.AMOUNTIDX])
-            entry['amount_local'] = CSVParser.parse_amount(line[cls.AMOUNTLCIDX]) if \
-                                    cls.AMOUNTLCIDX != cls.AMOUNTIDX else entry['amount']
+            entry['amount']       = cls.parse_amount(line[cls.AMOUNTIDX])
             entry['currency']     = line[cls.CURRENCYIDX]
+            if cls.AMOUNTLCIDX != cls.AMOUNTIDX:
+                entry['amount_local'] = cls.parse_amount(line[cls.AMOUNTLCIDX])
+            else:
+                entry['amount_local'] = entry['amount']
             cls._parse(entry)
-
             yield entry
 
     @staticmethod
     def _parse(entry):
         pass
 
-  
+
 class yAbankCSVParser(CSVParser):
 
-    CHARSET       = 'iso-8859-10'
-    FILEEXT       = '.csv'
-    DATEFORMAT    = '%d-%m-%Y'
+    CHARSET       = 'utf-8'#'iso-8859-10'
+    DATEFORMAT    = '%d.%m.%Y'
     DELIM         = ';'
     SKIP          = 0
 
@@ -176,16 +169,15 @@ class yAbankCSVParser(CSVParser):
     def _parse(entry):
         # Special actions
         try:
-            entry['currency'], entry['amount'] = \
-                yAbankCSVParser.RE_NONLOCAL.match(account).groups()
-        except:
+            entry['currency'], amount = cls.RE_NONLOCAL.match(entry['account']).groups()
+            entry['amount'] = cls.parse_amount(amount)
+        except AttributeError:
             entry['currency'] = 'NOK'
 
 
 class BankNorwegianCSVParser(CSVParser):
 
     CHARSET       = 'utf-8'
-    FILEEXT       = '.csv'
     DATEFORMAT    = '%m/%d/%Y'
     DELIM         = ';'
     SKIP          = 1
@@ -196,3 +188,42 @@ class BankNorwegianCSVParser(CSVParser):
     CURRENCYIDX   = 5
     AMOUNTLCIDX   = 6
 
+
+class XLSParser(Parser):
+
+    @classmethod
+    def read_file(cls, fpath):
+        import xlrd
+        xls = xlrd.open_workbook(fpath)
+        rows = xls.sheet_by_name(cls.SHEET).get_rows()
+        # Throw away header
+        next(rows)
+        return xls.datemode, rows
+
+    @classmethod
+    def parse(cls, fpath):
+        import xlrd
+        entry = {}
+        datemode, rows = cls.read_file(fpath)
+        for row in rows:
+            entry['date']         = xlrd.xldate_as_datetime(row[cls.DATEIDX].value, datemode)
+            entry['account']      = row[cls.ACCTIDX].value
+            entry['amount']       = row[cls.AMOUNTIDX].value
+            entry['currency']     = row[cls.CURRENCYIDX].value
+            if cls.AMOUNTLCIDX != cls.AMOUNTIDX:
+                entry['amount_local'] = row[cls.AMOUNTLCIDX].value
+            else:
+                entry['amount_local'] = entry['amount']
+            yield entry
+
+
+class BankNorwegianXLSParser(XLSParser):
+
+    CHARSET       = 'utf-8'
+    SHEET         = 'transactions'
+
+    DATEIDX       = 0
+    ACCTIDX       = 1
+    AMOUNTIDX     = 3
+    CURRENCYIDX   = 5
+    AMOUNTLCIDX   = 6
