@@ -1,6 +1,9 @@
-$(function() {
+function getElem(elementId) {
+    return document.getElementById(elementId);
+}
 
-    // get data from previous month
+function init() {
+    // Get data from previous month
     var date = new Date();
     var month = date.getUTCMonth();
     var year = date.getUTCFullYear();
@@ -12,39 +15,27 @@ $(function() {
     month = ('0' + month.toString()).slice(-2);
     year = year.toString();
 
-    $('#fromPeriod').val(month + year);
-    $('#toPeriod').val('');
-    getData();
+    getElem('fromPeriod').value = month + year;
+    postQuery();
 
-    // get list of all labels
-    $.get('labels.json', function(labels) {
-	labels.sort();
-	var div = $('.dataselect')[0];
-	var span = $('#labels');
-	lineWidth = 0;
-	maxWidth = div.offsetWidth;
-
-	$.each(labels, function(index, label) {
-
-	    tmp = $('<div>' + label + '</div>').css(
-		{'position': 'absolute', 
-		 'float': 'left', 
-		 'visibility': 'hidden'}).appendTo($('body'));
-
-	    delta = 1.2 * tmp.width();
-
-	    if (lineWidth + delta >= maxWidth) {
-		span.append('<br>');
-		lineWidth = 0;
+    // Get list of all labels
+    fetch('/labels.json').then(
+	function(response) {
+	    return response.json();
+	}).then(
+	    function(labels) {
+		var span = document.getElementById('labels');
+		for (i in labels) {
+		    var label = labels[i];
+		    var button = document.createElement('a');
+		    button.className = 'inactive';
+		    button.id = label;
+		    button.innerHTML = label;
+		    button.onclick = function () {
+			return clickEvent(this)
+		    };
+		    span.appendChild(button);
+		}
 	    }
-	    
-	    tmp.remove()
-	    lineWidth += delta;
-
-	    var newElem = $('<a class="inactive" id="' + label + '">' + label + '</a>').appendTo(span);
-	    newElem[0].onclick = function () { return clickEvent(this) };
-	});
-    });
-
-    return false;
-})
+	);
+}

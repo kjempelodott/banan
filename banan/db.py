@@ -1,8 +1,6 @@
-import sys, re
+import traceback, sys, re
 from datetime import date, datetime
-from calendar import monthrange
 from urllib.parse import unquote_plus
-from copy import deepcopy
 
 from tinydb import TinyDB, where
 from tinydb.utils import iteritems
@@ -67,19 +65,20 @@ class TransactionsDB(TinyDB):
                 return text_list
 
     
-    def assemble_data(self, datatype, foreach, show, select):
-
+    def assemble_data(self, period=None, labels=None):
         try:
             get_amount = lambda rec: rec['amount_local']
             M = list(range(1,13))
             total = strlen = 0
 
-            graph = {}
-            text = {}
-            average = {}
-            
-            if foreach == 'label':
-                dates = re.findall('[0-9]{6}', unquote_plus(select))
+            data = {}
+            if not labels:
+
+                _sum = {}
+                _average = {}
+                _text = {}
+
+                dates = re.findall('[0-9]{6}', unquote_plus(period))
                 date1 = date2 = date(int(dates[0][2:]), int(dates[0][:2]), 1)
                 if len(dates) == 2:
                     date2 = date(int(dates[1][2:]), int(dates[1][:2]), 1)
@@ -90,29 +89,36 @@ class TransactionsDB(TinyDB):
                                           (date1 <= where('date') < date2))
                     value = sum(map(get_amount, results))
                     if abs(value) > 1:
-                        graph[label] = value
+                        _sum[label] = value
                         if label not in self.config.cash_flow_ignore:
                             total += value
                         else:
                             label += '*'
 
-                        text[label] = self.results_as_text(results)
-                        strlen = len(text[label][-1])
+                        _text[label] = self.results_as_text(results)
+                        strlen = len(_text[label][-1])
                         sumstr = '%12.2f %s' % (value, self.config.local_currency)
-                        text[label].append('-' * strlen)
-                        text[label].append(' ' * (strlen - len(sumstr)) + sumstr)
+                        _text[label].append('-' * strlen)
+                        _text[label].append(' ' * (strlen - len(sumstr)) + sumstr)
 
                 ydelta = date2.year - date1.year
                 mdelta = date2.month - date1.month
                 delta = 12 * ydelta + mdelta
 
-                average = {}
-                for key, val in graph.items():
-                    average[key] = val/delta
+                for key, val in _sum.items():
+                    _average[key] = val/delta
 
-            elif foreach in ('month', 'year'):
+                data['text'] = _text
+                data['average'] = _average
+                data['sum'] = _sum
+
+            elif period in ('month', 'year'):
+
+                _graph = {}
+                _text = {}
+
                 date1 = date2 = first = datetime.now()
-                if foreach == 'month':
+                if period == 'month':
                     first = date(date1.year - 1, date1.month, 1)
                     date1 = date(date1.year - (date1.month == 1), M[date1.month - 2], 1)
                     date2 = date(date2.year, date2.month, 1)
@@ -121,33 +127,36 @@ class TransactionsDB(TinyDB):
                     date1 = date(date1.year, 1, 1)
                     date2 = date(date2.year + 1, 1, 1)
 
-                label = unquote_plus(label)
+                label = unquote_plus(labels).split(',')
                 while date1 >= first:
                     results = self.search((where('label') == label) and
                                           (date1 <= where('date') < date2))
                     value = sum(map(get_amount, results))
 
                     date2 = date1 
-                    if foreach == 'month':
+                    if period == 'month':
                         key = date1.strftime('%Y.%m') 
                         date1 = date(date2.year - (date2.month == 1), M[date2.month - 2], 1)
                     else:
                         key = str(date1.year)
                         date1 = date(date2.year - 1, 1, 1)
 
-                    graph[key] = value
+                    _graph[key] = value
                     total += value
                     if results:
-                        text[key] = self.results_as_text(results)
-                        strlen = len(text[key][-1])
+                        _text[key] = self.results_as_text(results)
+                        strlen = len(_text[key][-1])
                         sumstr = '%12.2f %s' % (value, self.config.local_currency)
-                        text[key].append('-' * strlen)
-                        text[key].append(' ' * (strlen - len(sumstr)) + sumstr)
+                        _text[key].append('-' * strlen)
+                        _text[key].append(' ' * (strlen - len(sumstr)) + sumstr)
+                data['text'] = _text
+                data['graph'] = _graph
 
-            text['***'] = ['-' * strlen,
-                           'SUM: %12.2f %s' % (total, self.config.local_currency),
+            data['text']['***'] = ['-' * strlen,
+                                   'SUM: %12.2f %s' % (total, self.config.local_currency),
                            '-' * strlen]
-            return True, {'graph' : graph, 'text' : text, 'average' : average}
+            return True, data
 
         except Exception as e:
+            traceback.print_tb(sys.exc_info()[2])
             return False, str(e)

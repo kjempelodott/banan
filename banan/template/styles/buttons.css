@@ -1,49 +1,9 @@
-.datatype a::before,
-.datatype a::after {
-      	display: inline-block;
-	opacity: 0;
-	-webkit-transition: -webkit-transform 0.3s, opacity 0.2s;
-	-moz-transition: -moz-transform 0.3s, opacity 0.2s;
-	transition: transform 0.3s, opacity 0.2s;
-}
-
-.datatype a::before {
-	margin-right: 10px;
-	content: '[';
-	-webkit-transform: translateX(20px);
-	-moz-transform: translateX(20px);
-	transform: translateX(20px);
-}
-
-.datatype a::after {
-	margin-left: 10px;
-	content: ']';
-	-webkit-transform: translateX(-20px);
-	-moz-transform: translateX(-20px);
-	transform: translateX(-20px);
-}
-
-.datatype a.active::after,
-.datatype a.active::before,
-.datatype a:hover::before,
-.datatype a:hover::after,
-.datatype a:focus::before,
-.datatype a:focus::after {
-	opacity: 1;
-	-webkit-transform: translateX(0px);
-	-moz-transform: translateX(0px);
-	transform: translateX(0px);
-}
-
-
-.query a, .dataselect a {
+.query a {
     padding: 6px 3px 3px 8px;
 }
 
 .query a::before, 
-.dataselect a::before,
-.query a::after,
-.dataselect a::after  {
+.query a::after {
     position: absolute;
     top: 0;
     left: 0;
@@ -56,8 +16,7 @@
     transition: transform 0.3s, opacity 0.3s;
 }
 
-.query a::after,
-.dataselect a::after {
+.query a::after {
     border: 2px solid;
     border-color: #fff;
     opacity: 0;
@@ -67,11 +26,8 @@
 }
 
 .query a.active::before, 
-.dataselect a.active::before,
 .query a:hover::before,
-.dataselect a:hover::before,
-.query a:focus::before,
-.dataselect a:focus::before {
+.query a:focus::before {
     opacity: 0;
     -webkit-transform: translateY(5px) translateX(-5px);
     -moz-transform: translateY(5px) translateX(-5px);
@@ -79,11 +35,8 @@
 }
 
 .query a.active::after,
-.dataselect a.active::after,
 .query a:hover::after,
-.dataselect a:hover::after,
-.query a:focus::after,
-.dataselect a:focus::after {
+.query a:focus::after {
     opacity: 1;
     -webkit-transform: translateY(0px) translateX(0px);
     -moz-transform: translateY(0px) translateX(0px);

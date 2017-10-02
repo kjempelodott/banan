@@ -2,7 +2,7 @@ import sys, os, signal, fcntl, time, re, socket, traceback
 from datetime import date, datetime
 from posixpath import splitext
 from shutil import copyfileobj
-from json import JSONEncoder
+from json import loads, JSONEncoder
 from uuid import uuid4
 
 from io import BytesIO
@@ -29,15 +29,16 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
         try:
             self.content_type = 'application/json'
             query = {}
+            print(self.headers)
             if 'Content-Type' in self.headers:            
                 assert('x-www-form-urlencoded' in self.headers['Content-Type'])
                 data = self.rfile.read(int(self.headers['Content-Length'])).decode()
-                query = dict(item.split('=', 1) for item in data.split('&'))
+                query = loads(data)
             self.send_json(**query)
         except Exception as e:
             self.send_response(400)
-            ERROR(e)
-            traceback.print_tb(sys.exc_info()[2], file=LOG)
+            ERROR(str(e))
+            traceback.print_tb(sys.exc_info()[2])
 
     def do_GET(self):
         if self.path == '/':
@@ -48,8 +49,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
             getattr(self, _callback)()
         except Exception as e:
            self.send_response(404)
-           ERROR(e)
-           traceback.print_tb(sys.exc_info()[2], file=LOG)
+           ERROR(str(e))
+           traceback.print_tb(sys.exc_info()[2])
    
     def handle_static(self):
         f = open('.' + self.path, 'rb')

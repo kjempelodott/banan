@@ -10,21 +10,21 @@ body {
     color: #ffffff;
 }
 
-.container, .control {
+#container, #control {
     position: absolute;
     width: 100vw;
 }
 
-.container {
+#container {
     background-color: #435a6b;
 }
 
-.placeholder {
+.view {
     margin: 0 auto; /* puts object in horizontal center */
     overflow: auto;
 }
 
-.control {
+#control {
     background-color: #f19f0f;
     bottom: 0;
     padding-top: 2vh;
@@ -32,75 +32,68 @@ body {
 
 
 @media screen and (orientation: landscape) {
-    .container {
+    #container {
 	padding: 5vh 0;
 	height: 65vh;
 	min-height: 65vh;
     }
 
-    .placeholder {
-	width: 60vw;
+    .view {
+	width: 70vw;
 	height: 65vh;
     }
     
-    .control {
+    #control {
         height: 23vh;
 	min-height: 23vh;
     }
 
-    .query, .dataselect {
+    .query {
 	width: 80vw;
-	line-height: 3em;
     }
 }
 
 
 @media screen and (orientation: portrait) {
-    .container {
+    #container {
 	padding: 5vh 0;
 	height: 40vh;
 	min-height: 40vh;
     }
 
-    .placeholder {
+    .view {
 	width: 90vw;
 	height: 40vh;
     }
 
-    .control {
+    #control {
         height: 48vh;
 	min-height: 48vh;
     }
 
-    .query, .dataselect {
+    .query {
 	width: 90vw;
-	line-height: 3.5em;
     }
     
-    .foreach, .show {
+    #foreach, #show {
 	display: block;
     }
 }
 
 @media screen and (max-width: 600px) {
-    .container {
+    #container {
 	font-size: .7em;
     }
-    .control {
+    #control {
 	font-size: .8em;
     }
 }
 
 .query {
-    padding-top: 2vh;
+    padding: 2vh 0;
     font-size: .7em;
     margin: 0 auto;
-}
-
-.dataselect {
-    padding-bottom: 2vh;
-    font-size: .7em;
-    margin: 0 auto;
+    line-height: 1.5em;
 }
 
 .symbol {
@@ -121,9 +114,11 @@ input
 }
 
 a, input {
+    display: inline-block;
     outline: none;
     position: relative;
     text-decoration: none;
     margin: 10px;
     letter-spacing: .1em;
+    white-space: nowrap;
 }

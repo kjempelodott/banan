@@ -1,17 +1,17 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os, sys
 from argparse import ArgumentParser
-from banan import TransactionsDB, Config
-from banan import yAbankCSVParser, yAbankPDFParser, BankNorwegianCSVParser
-from banan import Server
+from banan import *
 
 map_of_maps = {
 
     'yabank'        : { '.csv' : yAbankCSVParser,
                         '.pdf' : yAbankPDFParser },
 
-    'banknorwegian' : { '.csv' : BankNorwegianCSVParser }
+    'banknorwegian' : { '.csv' : BankNorwegianCSVParser,
+                        '.xls' : BankNorwegianXLSParser,
+                        '.xlsx': BankNorwegianXLSParser }
 
 } 
 
@@ -23,7 +23,6 @@ def main(args):
 
     if args.update:
         db.update_labels()
-        Server.update_db()
 
     if args.fpath:
         ext = os.path.splitext(args.fpath)[1]
@@ -31,20 +30,19 @@ def main(args):
         try:
             assert(ext)
             if not args.bank: raise AttributeError
-            bankparser = map_of_maps[args.bank][ext]
+            bankparser = map_of_maps[args.bank.lower()][ext]
         except AttributeError:
             print('ERROR: option -f requires option -b')
             exit(0)
         except AssertionError:
-            print('ERROR: FILE must end with file extension, e.g. \'.csv\'')
+            print('ERROR: FILE must have file extension, e.g. \'.csv\'')
             exit(0)
         except KeyError:
-            print('ERROR: no known %s %s parser' % (args.bank, ext))
+            print('ERROR: %s %s parser not implemented' % (args.bank, ext))
             exit(0)
         
         try:
-            db.feed(args.fpath, bankparser, args.skip_duplicates, 
-                    args.overwrite_duplicates, args.delete, args.dry_run)
+            db.feed(args.fpath, bankparser)
         except SystemExit:
             print('SystemExit raised')
             exit(0)
@@ -63,31 +61,19 @@ def main(args):
 
 def parse_args():
 
-    usage = '%s start | restart | stop | -f -b [-n|-o|--dry] | -u | -h' % sys.argv[0]
-    desc = 'Manage buzhug database or server. Several actions can be run in one command.'
+    usage = '%s start | restart | stop | -f -b | -u | -h' % sys.argv[0]
+    desc = 'Manage database or server.'
 
     parser = ArgumentParser(usage=usage, description=desc)
 
     db_group = parser.add_argument_group('# Database')
-    db_group.add_argument('-f', '--feed', dest='fpath', metavar='FILE', help='feed FILE to buzhug')
+    db_group.add_argument('-f', '--feed', dest='fpath', metavar='FILE', help='feed FILE to database')
     db_group.add_argument('-b', '--bank', dest='bank', metavar='BANK', help='origin of FILE')
     db_group.add_argument('-u', '--update', dest='update', 
                           const=True, default=False, action='store_const',
                           help='re-assign labels')
 
     db_opts = parser.add_argument_group('  options')
-    db_opts.add_argument('-n', '--no-check-dup', dest='skip_duplicates',
-                         const=False, default=True, action='store_const',
-                         help='do not check for duplicates in buzhug')
-    db_opts.add_argument('-o', '--overwrite', dest='overwrite_duplicates',
-                         const=True, default=False, action='store_const',
-                         help='overwrite duplicates in buzhug (overrides -s)')
-    db_opts.add_argument('-d', '--delete', dest='delete',
-                         const=True, default=False, action='store_const',
-                         help='delete instead of insert (overrides -s and -n)')
-    db_opts.add_argument('--dry', dest='dry_run', 
-                         const=True, default=False, action='store_const',
-                         help='dry run: only print parsed transactions to console')
 
     server_group = parser.add_argument_group('# Server')
     server_group.add_argument(dest='server_action', choices=('start','restart','stop'),
