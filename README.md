@@ -1,4 +1,4 @@
-Collect all you bank statements in various formats in one place. A simple web interface lets you query the database and display the results as a plot or in plain text.
+Collect all you bank statements in various formats in one place. A simple web interface lets you query the database and display the results as a graph or in plain text.
 
 #### Setup
 
@@ -26,15 +26,14 @@ Start the server with the command
 ./main start
 ```
 
-Go to [localhost](http://127.0.0.1:8000). You can also `restart` and `stop` the server. 
-
-Note that the web interface can only *read* from the database. Any adding, updating or deleting must be done with [main](https://github.com/kjempelodott/banan/tree/master/main) or a Python shell.
+Go to [localhost](http://127.0.0.1:8000) to browse your transactions history. You can also `restart` and `stop` the server.
 
 ##### Requirements:
-* python-buzhug
-* internet connection (jQuery is fetched from Google)
-* a JavaScript-enabled browser
-* (python-pypdf)
+* A modern browser
+* python3
+* TinyDB (pip3 install tinydb)
+* For PDF-support: pyPdf (pip3 install pypdf)
+* For Excel-support: xlrd (pip3 install xlrd)
 
 ##### TODO
 * Make it cross-browser (only tested with latest Firefox)
