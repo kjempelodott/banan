@@ -27,8 +27,10 @@ function clickEvent(button) {
 	// Disable
 	getElem('period').style.display = 'none';
     }
-
-    postQuery();
+    // A label button was pressed
+    else {
+	postQuery();
+    }
     return false;
 }
 
