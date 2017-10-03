@@ -6,50 +6,47 @@ body {
     margin: 0;
     overflow: auto;
     overflow-x: hidden;
-    background-color: #f19f0f;
+    background-color: #00bb66;
     color: #ffffff;
 }
 
 #container, #control {
     position: absolute;
-    width: 100vw;
-}
-
-#container {
-    background-color: #435a6b;
+    width: 100%;
 }
 
 .view {
     margin: 0 auto; /* puts object in horizontal center */
     overflow: auto;
+    display: none;
+    visibility: hidden;
 }
 
 #control {
-    background-color: #f19f0f;
     bottom: 0;
-    padding-top: 2vh;
+    padding: 2vh 0;
 }
 
 
 @media screen and (orientation: landscape) {
     #container {
 	padding: 5vh 0;
-	height: 65vh;
-	min-height: 65vh;
+	height: 65%;
+	min-height: 65%;
     }
 
     .view {
-	width: 70vw;
-	height: 65vh;
+	width: 70%;
+	height: 65%;
     }
     
     #control {
-        height: 23vh;
-	min-height: 23vh;
+        height: 23%;
+	min-height: 23%;
     }
 
     .query {
-	width: 80vw;
+	width: 80%;
     }
 }
 
@@ -57,22 +54,22 @@ body {
 @media screen and (orientation: portrait) {
     #container {
 	padding: 5vh 0;
-	height: 40vh;
-	min-height: 40vh;
+	height: 40%;
+	min-height: 40%;
     }
 
     .view {
-	width: 90vw;
-	height: 40vh;
+	width: 90%;
+	height: 40%;
     }
 
     #control {
-        height: 48vh;
-	min-height: 48vh;
+        height: 48%;
+	min-height: 48%;
     }
 
     .query {
-	width: 90vw;
+	width: 90%;
     }
     
     #foreach, #show {
@@ -97,20 +94,19 @@ body {
 }
 
 .symbol {
-    vertical-align: middle;
-    font-size: 2em;
+    vertical-align: text-bottom;
+    font-size: 3em;
 }
 
 input
 {
-    font-weight: lighter;
-    font-family: sans-serif;
     font-size: 1em;
     height: 1.5em;
-    width: 4.5em;
-    background-color: #f19f0f;
-    border: solid 2px rgba(0,0,0,0.05);
-    color: #ffffff;
+    width: 4em;
+    padding: 4px;
+    background-color: #ffffff;
+    border: none;
+    border-radius: 5px;
 }
 
 a, input {

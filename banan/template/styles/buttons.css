@@ -1,44 +1,16 @@
 .query a {
-    padding: 6px 3px 3px 8px;
-}
-
-.query a::before, 
-.query a::after {
-    position: absolute;
+    background-color: #ffffff;
+    color: #444444;
+    padding: 8px;
     top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: 3px solid rgba(0,0,0,0.1);
-    content: '';
-    -webkit-transition: -webkit-transform 0.3s, opacity 0.3s;
-    -moz-transition: -moz-transform 0.3s, opacity 0.3s;
-    transition: transform 0.3s, opacity 0.3s;
+    box-shadow: 10px 10px 0px #444444;
+    transition: all ease 0.1s;
 }
 
-.query a::after {
-    border: 2px solid;
-    border-color: #fff;
-    opacity: 0;
-    -webkit-transform: translateY(-7px) translateX(6px);
-    -moz-transform: translateY(-7px) translateX(6px);
-    transform: translateY(-7px) translateX(6px);
-}
-
-.query a.active::before, 
-.query a:hover::before,
-.query a:focus::before {
-    opacity: 0;
-    -webkit-transform: translateY(5px) translateX(-5px);
-    -moz-transform: translateY(5px) translateX(-5px);
-    transform: translateY(5px) translateX(-5px);
-}
-
-.query a.active::after,
-.query a:hover::after,
-.query a:focus::after {
-    opacity: 1;
-    -webkit-transform: translateY(0px) translateX(0px);
-    -moz-transform: translateY(0px) translateX(0px);
-    transform: translateY(0px) translateX(0px);
+.query a.active,
+.query a:hover {
+    box-shadow: 3px 3px 0px #444444;
+     -webkit-transform: translateY(7px) translateX(7px);
+     -moz-transform: translateY(7px) translateX(7px);
+     transform: translateY(7px) translateX(7px)
 }
