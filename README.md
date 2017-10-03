@@ -18,6 +18,13 @@ and created a `labels.conf`, insert your bank statement file(s) with the command
 ./main -f foobar.baz -b foobank
 ```
 
+##### Requirements:
+* A modern browser
+* python3
+* TinyDB (pip3 install tinydb)
+* For PDF-support: pyPdf (pip3 install pypdf)
+* For Excel-support: xlrd (pip3 install xlrd)
+
 #### Web interface
 
 Start the server with the command
@@ -27,13 +34,6 @@ Start the server with the command
 ```
 
 Go to [localhost](http://127.0.0.1:8000) to browse your transactions history. You can also `restart` and `stop` the server.
-
-##### Requirements:
-* A modern browser
-* python3
-* TinyDB (pip3 install tinydb)
-* For PDF-support: pyPdf (pip3 install pypdf)
-* For Excel-support: xlrd (pip3 install xlrd)
 
 ##### TODO
 * Make it cross-browser (only tested with latest Firefox)
