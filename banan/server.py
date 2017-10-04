@@ -29,7 +29,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler, object):
         try:
             self.content_type = 'application/json'
             query = {}
-            print(self.headers)
             if 'Content-Type' in self.headers:            
                 assert('x-www-form-urlencoded' in self.headers['Content-Type'])
                 data = self.rfile.read(int(self.headers['Content-Length'])).decode()

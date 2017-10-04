@@ -1,25 +1,30 @@
-function print(data) {
+function print(view, text, sums) {
+    var frame = view.getElementsByClassName('text')[0];
+    frame.innerHTML = '';
+    var keys = Object.keys(text).sort();
+    for (i in keys) {
+	var key = keys[i]
 
-    var frame = $('text');
-    frame.html('');
-    frame.css('font-family', 'monospace');
-    frame.css('font-size', '.6em');
+	var header = document.createElement('h2');
+	header.innerHTML = key;
+	frame.appendChild(header);
 
-    var keys = Object.keys(data);
-    keys.sort();
-    $.each(keys, function(index, key) {
-	frame.append('<div>[' + key.replace(/([ ])/g, '&nbsp;') + ']<\div><br>');
-	$.each(data[key], function(index, val) {
-	    frame.append('<div>' + val.replace(/([ ])/g, '&nbsp;') + '<\div>');
-	}); 
-	frame.append('<br>');
-    });
+	var table = document.createElement('table');
+	for (j in text[key]) {
+	    var row = table.insertRow();
+	    for (k in text[key][j]) {
+		row.insertCell().innerHTML = text[key][j][k];
+	    }
+	}
+	frame.appendChild(table);
+    }
 }
 
 
 function postQuery() {
 
     var query = {};
+    var view = null;
     if (getElem('label-btn').className == 'active') {
 	var from = getElem('fromPeriod');
 	var to = getElem('toPeriod');
@@ -27,13 +32,16 @@ function postQuery() {
 	    return false;
 	}
 	query['period'] = fromPeriod.value + '-' + toPeriod.value;
+	view = getElem('label-view');
     }
     else  {
 	if (getElem('month-btn').className == 'active') {
 	    query['period'] = 'month';
+	    view = getElem('month-view');	    
 	}
 	else if (getElem('year-btn').className == 'active') {
 	    query['period'] = 'year';
+	    view = getElem('year-view');
 	}
 	else {
 	    return false;
@@ -58,7 +66,7 @@ function postQuery() {
 	    return response.json();
 	}).then(
 	    function(data) {
-		;
+		print(view, data['text']);
 	    }
 	);
     return true;
