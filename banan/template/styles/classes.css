@@ -1,0 +1,15 @@
+.text, .graph {
+    margin-bottom: 4vh;
+    width: 80vw;
+}
+
+.query {
+    margin: 2vh 0;
+    font-size: .7em;
+    line-height: 1.5em;
+}
+
+.symbol {
+    vertical-align: text-bottom;
+    font-size: 3em;
+}

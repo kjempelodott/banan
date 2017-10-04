@@ -1,0 +1,10 @@
+#month-view, #year-view {
+    display: none;
+    visibility: hidden;
+}
+
+#control {
+    text-align: center;
+    padding: 2vh 0;
+    width: 70vw;
+}

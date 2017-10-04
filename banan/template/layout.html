@@ -3,8 +3,9 @@
 <head>
   <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
 
-  <link href='banan/template/styles/style.css' rel='stylesheet' type='text/css'>
-  <link href='banan/template/styles/buttons.css' rel='stylesheet' type='text/css'>
+  <link href='banan/template/styles/tags.css' rel='stylesheet' type='text/css'>
+  <link href='banan/template/styles/classes.css' rel='stylesheet' type='text/css'>
+  <link href='banan/template/styles/ids.css' rel='stylesheet' type='text/css'>
   <script src='banan/template/javascript/data.js' type='text/javascript'></script>
   <script src='banan/template/javascript/events.js' type='text/javascript'></script>
   <script src='banan/template/javascript/at.doc.ready.js' type='text/javascript'></script>
@@ -12,35 +13,45 @@
 </head>
 <body onload='init();'>
 
-<div id='container'>
-  <div id='text' class='view'></div>
-  <div id='graph' class='view'></div>
-  <div id='sum' class='view'></div>
-  <div id='average' class='view'></div>
-</div>
+  <div id='control'>
+    Select a variable
+    <div class='query'>
+      <span id='variable'>
+	<a class='inactive' id='month-btn' onclick='clickEvent(this);'>month</a>
+	<a class='inactive' id='year-btn' onclick='clickEvent(this);'>year</a>
+	<a class='active' id='label-btn' onclick='clickEvent(this);'>label</a>
+      </span>
+    </div>
+    Select a dataset
+    <div class='query'>
+      <span id='period'>
+	<span class='symbol'>⌨</span>
+	<input id='fromPeriod' type='text' maxlength='6' onkeydown='keyEvent(this);'></input>
+	–
+	<input id='toPeriod' type='text' maxlength='6' onkeydown='keyEvent(this);'></input>
+	<span class='symbol'>↲</span>
+      </span>
+      <span style='display: none;' id='labels'>
+      </span>
+    </div>
+  </div>
 
-<div id='control'>
-  Select a variable
-  <div class='query'>
-    <span id='variable'>
-      <a class='inactive' id='month-btn' onclick='clickEvent(this);'>month</a>
-      <a class='inactive' id='year-btn' onclick='clickEvent(this);'>year</a>
-      <a class='active' id='label-btn' onclick='clickEvent(this);'>label</a>
-    </span>
+  <div id='label-view' class='view'>
+    <div class='graph'>
+      <span class='bar'></span>
+    </div>
+    <div class='text'></div>
   </div>
-  Select a dataset
-  <div class='query'>
-    <span id='period'>
-      <span class='symbol'>⌨</span>
-      <input id='fromPeriod' type='text' maxlength='6' onkeydown='keyEvent(this);'></input>
-      –
-      <input id='toPeriod' type='text' maxlength='6' onkeydown='keyEvent(this);'></input>
-      <span class='symbol'>↲</span>
-    </span>
-    <span style='display: none;' id='labels'>
-    </span>
+  
+  <div id='month-view' class='view'>
+      <div class='graph'></div>
+      <div class='text'></div>
   </div>
-</div>
+  
+  <div id='year-view' class='view'>
+    <div class='graph'></div>
+    <div class='text'></div>
+  </div>
 
 </body>
 </html>

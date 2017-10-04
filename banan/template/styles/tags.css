@@ -1,0 +1,88 @@
+body {
+    font-size: 16pt;
+    font-weight: lighter;
+    font-family: sans-serif;
+    margin: 0;
+    overflow: auto;
+    overflow-x: hidden;
+    background-color: #00bb66;
+    color: #ffffff;
+}
+
+div {
+    margin: 0 auto;
+}
+
+input
+{
+    font-size: 1em;
+    height: 1.5em;
+    width: 4em;
+    padding: 4px;
+    background-color: #ffffff;
+    border: none;
+    border-radius: 5px;
+}
+
+a, input {
+    display: inline-block;
+    outline: none;
+    position: relative;
+    text-decoration: none;
+    margin: 10px;
+    letter-spacing: .1em;
+    white-space: nowrap;
+}
+
+a {
+    background-color: #ffffff;
+    color: #444444;
+    top: 0;
+    padding: 8px;
+    box-shadow: 10px 10px 0px #444444;
+    transition: all ease 0.1s;
+}
+
+a.active,
+a:hover {
+    box-shadow: 3px 3px 0px #444444;
+     -webkit-transform: translateY(7px) translateX(7px);
+     -moz-transform: translateY(7px) translateX(7px);
+     transform: translateY(7px) translateX(7px)
+}
+
+table {
+    font-family: monospace;
+    font-size: 1em;
+    width: 70vw;
+    table-layout: fixed;
+    border-top: 10px solid rgba(0, 0, 0, 0.1);
+    padding-top: 5px;
+}
+
+td {
+    overflow: hidden;
+}
+
+td:nth-child(1) {
+    width: 8em;
+    margin-right: 10px;
+}
+
+td:nth-child(2) {
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+td:nth-child(3) {
+    width: 10em;
+    white-space: nowrap;
+    text-align: right;
+    margin-left: 10px;
+}
+
+h2 {
+    font-family: URW Gothic L;
+    font-weight: 500;
+}
