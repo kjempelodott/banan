@@ -72,10 +72,11 @@ class TransactionsDB(TinyDB):
                 if len(dates) == 2:
                     date2 = date(int(dates[1][2:]), int(dates[1][:2]), 1)
                 date2 = date(date2.year + (date2.month == 12), M[date2.month - 12], 1)
-
+                print(date1, date2)
                 for label in self.config.labels.keys():
                     results = self.search((where('label') == label) &
-                                          (date1 <= where('date') < date2))
+                                          (date1 <= where('date')) &
+                                          (where('date') < date2))
                     value = sum(map(get_amount, results))
                     if abs(value) > 1:
                         graph[label] = value
@@ -99,8 +100,9 @@ class TransactionsDB(TinyDB):
 
                 label = unquote_plus(labels).split(',')
                 while date1 >= first:
-                    results = self.search((where('label') == label) and
-                                          (date1 <= where('date') < date2))
+                    results = self.search((where('label') == label) &
+                                          (date1 <= where('date')) &
+                                          (where('date') < date2))
                     value = sum(map(get_amount, results))
 
                     date2 = date1 
