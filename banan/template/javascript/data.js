@@ -22,7 +22,6 @@ function print(view, text, sums) {
 
 
 function postQuery() {
-
     var query = {};
     var view = null;
     if (getElem('label-btn').className == 'active') {
