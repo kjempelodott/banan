@@ -124,7 +124,7 @@ class CSVParser(Parser):
 
     @classmethod
     def read_file(cls, fpath):
-        data = super().read_files(fpath)
+        data = super().read_file(fpath)
         data = data.decode(cls.CHARSET)
         return data.split('\n')[cls.SKIP:]
         
@@ -165,8 +165,8 @@ class yAbankCSVParser(CSVParser):
     CURRENCYIDX   = -1
     AMOUNTLCIDX   = AMOUNTIDX
 
-    @staticmethod
-    def _parse(entry):
+    @classmethod
+    def _parse(cls, entry):
         # Special actions
         try:
             entry['currency'], amount = cls.RE_NONLOCAL.match(entry['account']).groups()
