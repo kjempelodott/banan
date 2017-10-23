@@ -1,0 +1,54 @@
+table {
+    width: 70vw;
+    table-layout: fixed;
+    border-top: 10px solid rgba(0, 0, 0, 0.1);
+    padding-top: 5px;
+}
+
+td {
+    white-space: nowrap;
+}
+
+td:nth-child(1) {
+    font-family: monospace;
+    font-size: 1.2em;
+}
+
+td:nth-child(2) {
+    font-family: URW Gothic L;
+    font-size: 1em;
+    font-style: italic;
+    overflow: hidden;
+}
+
+td:nth-child(3) {
+    font-family: monospace;
+    font-size: 1.2em;
+    text-align: right;
+}
+
+.text, .graph {
+    margin: 0 auto 4vh auto;
+    width: 80vw;
+}
+
+.graph {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-evenly;
+}
+
+.bar {
+    padding: 10px;
+    margin-top: 10px;
+    background-color: #111111;
+    flex-grow: 1;
+    max-height: 20vh;
+}
+
+.bar:after {
+    float: right;
+    font-style: italic;
+    content: '200';
+}

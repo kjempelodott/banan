@@ -1,6 +1,5 @@
 body {
     font-size: 16pt;
-    font-weight: lighter;
     font-family: sans-serif;
     margin: 0;
     overflow: auto;
@@ -9,13 +8,15 @@ body {
     color: #ffffff;
 }
 
-div {
-    margin: 0 auto;
+h2 {
+    font-family: URW Gothic L;
+    font-weight: lighter;
 }
 
 input
 {
     font-size: 1em;
+    font-weight: lighter;
     height: 1.5em;
     width: 4em;
     padding: 4px;
@@ -51,38 +52,28 @@ a:hover {
      transform: translateY(7px) translateX(7px)
 }
 
-table {
-    font-family: monospace;
-    font-size: 1em;
+.query {
+    margin: 2vh 0;
+    font-size: .7em;
+    line-height: 1.5em;
+}
+
+.symbol {
+    vertical-align: text-bottom;
+    font-size: 3em;
+}
+
+#control, #label-view, #month-view, #year-view {
+    margin: 0 auto;
+}
+
+#month-view, #year-view {
+    display: none;
+    visibility: hidden;
+}
+
+#control {
+    text-align: center;
+    padding: 2vh 0;
     width: 70vw;
-    table-layout: fixed;
-    border-top: 10px solid rgba(0, 0, 0, 0.1);
-    padding-top: 5px;
-}
-
-td {
-    overflow: hidden;
-}
-
-td:nth-child(1) {
-    width: 8em;
-    margin-right: 10px;
-}
-
-td:nth-child(2) {
-    font-style: italic;
-    white-space: nowrap;
-    overflow: hidden;
-}
-
-td:nth-child(3) {
-    width: 10em;
-    white-space: nowrap;
-    text-align: right;
-    margin-left: 10px;
-}
-
-h2 {
-    font-family: URW Gothic L;
-    font-weight: 500;
 }
