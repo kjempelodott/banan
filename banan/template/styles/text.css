@@ -1,0 +1,43 @@
+.text {
+    width: 100vw;
+    margin: auto;
+    padding: 4vh 0;
+    background-color: #444;
+}
+
+h2 {
+    width: 70vw;
+    margin: 20px auto;
+    font-family: URW Gothic L;
+    font-weight: lighter;
+}
+
+table {
+    width: 70vw;
+    margin: 0 auto;
+    padding-top: 20px;
+    table-layout: fixed;
+    border-top: 5px solid #c63;
+}
+
+td {
+    white-space: nowrap;
+}
+
+td:nth-child(1) {
+    font-family: monospace;
+    font-size: 1em;
+}
+
+td:nth-child(2) {
+    font-family: URW Gothic L;
+    font-size: .9em;
+    font-style: italic;
+    overflow: hidden;
+}
+
+td:nth-child(3) {
+    font-family: monospace;
+    font-size: 1em;
+    text-align: right;
+}
