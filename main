@@ -24,25 +24,26 @@ def main(args):
     if args.update:
         db.update_labels()
 
-    if args.fpath:
-        ext = os.path.splitext(args.fpath)[1]
-        bankparser = None
+    if args.files:
         try:
-            assert(ext)
-            if not args.bank: raise AttributeError
-            bankparser = map_of_maps[args.bank.lower()][ext]
-        except AttributeError:
-            print('ERROR: option -f requires option -b')
-            exit(0)
-        except AssertionError:
-            print('ERROR: FILE must have file extension, e.g. \'.csv\'')
-            exit(0)
-        except KeyError:
-            print('ERROR: %s %s parser not implemented' % (args.bank, ext))
-            exit(0)
-        
-        try:
-            db.feed(args.fpath, bankparser)
+            for fpath in args.files:
+                ext = os.path.splitext(fpath)[1]
+                bankparser = None
+                try:
+                    assert(ext)
+                    if not args.bank: raise AttributeError
+                    bankparser = map_of_maps[args.bank.lower()][ext]
+                except AttributeError:
+                    print('ERROR: option -f requires option -b')
+                    exit(0)
+                except AssertionError:
+                    print('ERROR: FILE must have file extension, e.g. \'.csv\'')
+                    exit(0)
+                except KeyError:
+                    print('ERROR: %s %s parser not implemented' % (args.bank, ext))
+                    exit(0)
+                print('.. ' + fpath)
+                db.feed(fpath, bankparser)
         except SystemExit:
             print('SystemExit raised')
             exit(0)
@@ -55,8 +56,8 @@ def main(args):
             Server.stop()
         elif args.server_action == 'start':
             Server().start()
-        else:
-            Server().restart()
+    else:
+        Server().restart()
 
 
 def parse_args():
@@ -67,8 +68,8 @@ def parse_args():
     parser = ArgumentParser(usage=usage, description=desc)
 
     db_group = parser.add_argument_group('# Database')
-    db_group.add_argument('-f', '--feed', dest='fpath', metavar='FILE', help='feed FILE to database')
-    db_group.add_argument('-b', '--bank', dest='bank', metavar='BANK', help='origin of FILE')
+    db_group.add_argument('-f', '--feed', dest='files', metavar='FILES', help='feed FILES to database', nargs='+')
+    db_group.add_argument('-b', '--bank', dest='bank', metavar='BANK', help='origin of FILES')
     db_group.add_argument('-u', '--update', dest='update', 
                           const=True, default=False, action='store_const',
                           help='re-assign labels')
@@ -80,7 +81,7 @@ def parse_args():
                               help='start, restart or stop server', nargs='?')
 
     args = parser.parse_args(sys.argv[1:])
-    if not args.fpath and not args.server_action and not args.update:
+    if not args.files and not args.server_action and not args.update:
         parser.print_help()
         exit(0)
 
