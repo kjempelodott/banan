@@ -20,6 +20,39 @@ function print(view, text, sums) {
     }
 }
 
+function plot(view, graph, sums) {
+    var frame = view.getElementsByClassName('graph')[0];
+    frame.innerHTML = '';
+    var keys = Object.keys(graph).sort();
+    var scale = Math.max(...Object.values(graph).map(Math.abs));
+    for (i in keys) {
+	var key = keys[i]
+	if (key.slice(-1) == '*') {
+	    continue;
+	}
+
+	var bar = document.createElement('div');
+	if (graph[key] > 0) {
+	    bar.className = 'bar positive';
+	}
+	else {
+	    bar.className = 'bar negative';
+	}
+	bar.style.width = (70 * Math.abs(graph[key])/scale).toString() + '%';
+
+	var label = document.createElement('span');
+	label.className = 'label';
+	label.innerHTML = '<p>' + key + '</p>';
+	bar.appendChild(label);
+
+	var amount = document.createElement('span');
+	amount.className = 'amount';
+	amount.innerHTML = '<p>' + graph[key].toFixed(2) + '</p>';
+	bar.appendChild(amount);
+
+	frame.appendChild(bar);
+    }
+}
 
 function postQuery() {
     var query = {};
@@ -66,6 +99,7 @@ function postQuery() {
 	}).then(
 	    function(data) {
 		print(view, data['text']);
+		plot(view, data['graph']);
 	    }
 	);
     return true;

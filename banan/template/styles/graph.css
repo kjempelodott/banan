@@ -18,10 +18,45 @@
     box-shadow: 10px 10px 0px #444;
     color: #444;
     background-color: #fff;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.bar:after {
-    float: right;
+.amount, .label {
+    display: block;
+    transition: opacity .5s ease-in-out;
+}
+
+.amount {
+    height: 0;
     font-style: italic;
-    content: '200';
+    overflow: hidden;
+    opacity: 0;
+}
+
+.bar:hover .amount {
+    height: auto;
+    overflow: visible;
+    opacity: 1;
+}
+
+.bar:hover .label {
+    height: 0;
+    opacity: 0;
+}
+
+p {
+    margin: 0;
+    padding: 6px;
+    display: inline-block;
+    color: #fff;
+    opacity: .8;
+}
+
+.positive p {
+    background-color: #095;
+}
+
+.negative p {
+    background-color: #c63;
 }

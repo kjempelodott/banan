@@ -7,9 +7,10 @@
 }
 
 .query {
-    margin: 2vh 0;
+    margin: 2vh auto;
     font-size: .8em;
     line-height: 1.5em;
+    max-width: 70vw;
 }
 
 .symbol {
