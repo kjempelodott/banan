@@ -1,4 +1,4 @@
-Collect all you bank statements in various formats in one place. A simple web interface lets you query the database and display the results as a graph or in plain text.
+Collect all your bank statements in various formats in one place. A simple web interface lets you query the database and display the results as a graph or in plain text.
 
 #### Setup
 
