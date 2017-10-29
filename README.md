@@ -21,7 +21,6 @@ and created a `labels.conf`, insert your bank statement file(s) with the command
 ##### Requirements:
 * A modern browser
 * python3
-* TinyDB (pip3 install tinydb)
 * For PDF-support: pyPdf (pip3 install pypdf)
 * For Excel-support: xlrd (pip3 install xlrd)
 
