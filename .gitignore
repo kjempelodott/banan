@@ -1,5 +1,5 @@
 labels.conf
 *.pyc
 *.log
-*.json
+*.db
 *~
