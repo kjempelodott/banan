@@ -1,91 +1,102 @@
-import traceback, sys, re
+import traceback, sys, re, sqlite3
 from datetime import date, datetime
 from urllib.parse import unquote_plus
-
-from tinydb import TinyDB, where
-from tinydb.utils import iteritems
-from tinydb_serialization import Serializer, SerializationMiddleware
+from hashlib import sha1
 
 from banan.logger import INFO, DEBUG
 
 
-class DateTimeSerializer(Serializer):
-    OBJ_CLASS = date
+class TransactionsDB:
 
-    def encode(self, obj):
-        return obj.strftime('%Y-%m-%d')
-
-    def decode(self, s):
-        return datetime.strptime(s, '%Y-%m-%d').date()
-
-
-class TransactionsDB(TinyDB):
-
-    STORAGE = 'banan/storage.json'
+    STORAGE = 'banan/storage.db'
 
     def __init__(self, conf):
         self.config = conf
-        serialization = SerializationMiddleware()
-        serialization.register_serializer(DateTimeSerializer(), 'TinyDate')
-        super().__init__(TransactionsDB.STORAGE, storage=serialization)
+        self.db = sqlite3.connect(TransactionsDB.STORAGE)
+        with self.db:
+            self.db.cursor().execute("""
+            CREATE TABLE IF NOT EXISTS Transactions (
+              hash TEXT PRIMARY KEY,
+              date DATE,
+              account TEXT,
+              amount REAL,
+              amount_local REAL,
+              currency TEXT,
+              label TEXT
+            )""")
 
     def feed(self, fpath, parser):
-        for record in parser.parse(fpath):
-            DEBUG('%s %-40s\t%12.2f %s' % (record['date'].isoformat(),
-                                           record['account'][:40],
-                                           record['amount'],
-                                           record['currency']));
+        with self.db:
+            cur = self.db.cursor()
+            for record in parser.parse(fpath):
+                date, account, amount, amount_local, currency = record
+                DEBUG('%s %-40s\t%12.2f %s' % (date,
+                                               account[:40],
+                                               amount,
+                                               currency));
 
-            self.config.assign_label(record)
-            self.insert(record)
+                label = self.config.assign_label(account, amount, currency)
+                cur.execute("""
+                INSERT OR IGNORE INTO Transactions
+                  VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (sha1(str(record).encode('utf-8')).hexdigest(), *record, label))
 
     def update_labels(self):
-        rawdata = self._read()
-        data = {}
-        for eid, el in iteritems(rawdata):
-            self.config.assign_label(el)
-            data[eid] = el
-        self._write(data)
+        with self.db:
+            cur = self.db.cursor()
+            data = cur.execute('SELECT hash, account, amount, currency, label FROM Transactions')
+            for row in data.fetchall():
+                _hash, account, amount, currency, _label = record
+                label = self.config.assign_label(account, amount, currency)
+                if label != _label:
+                    cur.execute('UPDATE Transactions SET label=? WHERE hash=?', label, _hash)
 
-    def to_arrays(self, data):
-        data = sorted(data, key=lambda rec: rec['date'])
-        arrays = []
-        for record in data:
-            date = record['date'].isoformat()
-            amount = '%.2f %s' % (record['amount'], record['currency'])
-            arrays.append([date, record['account'], amount])
-        return arrays
+    def process_data(self, data):
+        array = []
+        _sum = 0
+        for record in data.fetchall():
+            date, account, amount, amount_local, currency = record
+            amount = '%.2f %s' % (amount, currency)
+            _sum += amount_local
+            array.append([date, account, amount])
+        return _sum, array
     
     def assemble_data(self, period=None, labels=None):
 
-        get_amount = lambda rec: rec['amount_local']
         M = list(range(1,13))
         total = 0
         graph = {}
         text = {}
         sums = {}
+        cur = self.db.cursor()
 
         try:
             if not labels:
                 dates = re.findall('[0-9]{6}', unquote_plus(period))
-                date1 = date2 = date(int(dates[0][2:]), int(dates[0][:2]), 1)
+                yyyy = int(dates[0][2:])
+                mm = int(dates[0][:2])
+                date1 = '%i-%02i-01' % (yyyy, mm)
                 if len(dates) == 2:
-                    date2 = date(int(dates[1][2:]), int(dates[1][:2]), 1)
-                date2 = date(date2.year + (date2.month == 12), M[date2.month - 12], 1)
+                    yyyy = int(dates[1][2:])
+                    mm = int(dates[1][:2])
+                date2 = '%i-%i02-01' % (yyyy + (mm == 12), M[mm - 12])
                 print(date1, date2)
                 for label in self.config.labels.keys():
-                    results = self.search((where('label') == label) &
-                                          (date1 <= where('date')) &
-                                          (where('date') < date2))
-                    value = sum(map(get_amount, results))
-                    if abs(value) > 1:
-                        graph[label] = value
+                    rows = cur.execute("""
+                    SELECT date(date), account, amount, amount_local, currency FROM Transactions
+                      WHERE label=?
+                      AND date BETWEEN ? AND ?
+                      ORDER BY date
+                    """, (label, date1, date2))
+                    _sum, data_array = self.process_data(rows)
+                    if _sum:
+                        graph[label] = _sum
                         if label not in self.config.cash_flow_ignore:
-                            total += value
+                            total += _sum
                         else:
                             label += '*'
-                        text[label] = self.to_arrays(results)
-                        sums[label] = [value, self.config.local_currency]
+                        text[label] = data_array
+                        sums[label] = [_sum, self.config.local_currency]
 
             elif period in ('month', 'year'):
                 date1 = date2 = first = datetime.now()
@@ -100,11 +111,12 @@ class TransactionsDB(TinyDB):
 
                 label = unquote_plus(labels).split(',')
                 while date1 >= first:
-                    results = self.search((where('label') == label) &
-                                          (date1 <= where('date')) &
-                                          (where('date') < date2))
-                    value = sum(map(get_amount, results))
-
+                    rows = cur.execute("""
+                    SELECT date(date), account, amount, amount_local, currency FROM Transactions
+                      WHERE label=?
+                      AND date BETWEEN ? AND ?
+                      ORDER BY date
+                    """, (label, date1.isoformat(), date2.isoformat()))
                     date2 = date1 
                     if period == 'month':
                         key = date1.strftime('%Y.%m') 
@@ -113,11 +125,12 @@ class TransactionsDB(TinyDB):
                         key = str(date1.year)
                         date1 = date(date2.year - 1, 1, 1)
 
-                    graph[key] = value
-                    total += value
-                    if results:
-                        text[label] = self.to_arrays(results)
-                        sums[label] = [value, self.config.local_currency]
+                    _sum, data_array = self.process_data(rows)
+                    graph[key] = _sum
+                    total += _sum
+                    if data_array:
+                        text[label] = data_array
+                        sums[label] = [_sum, self.config.local_currency]
 
             sums['==='] = total
             return True, {'text' : text, 'graph' : graph, 'sums' : sums}

@@ -63,9 +63,9 @@ class Config:
             self.local_currency = locale.localeconv()['int_curr_symbol']
             INFO('using local_currency from env: %s' % self.local_currency)
 
-    def assign_label(self, record):
+    def assign_label(self, account, amount, currency):
         matches = {}
-        account = record['account'].lower()
+        account = account.lower()
         for label, keywords in self.labels.items():
             for kw in keywords:
                 if kw.sub('', account) != account:
@@ -73,24 +73,19 @@ class Config:
                     break
 
         if len(matches) == 1:
-            record['label'] = matches.popitem()[1]
-            return
+            return matches.popitem()[1]
 
         if not matches:
-            currency = record['currency']
-            amount = record['amount']
             if currency != self.local_currency and self.foreign_currency_label:
-                record['label'] = self.foreign_currency_label
+                return self.foreign_currency_label
             elif amount > 0:
-                record['label'] = self.incomes_label
-            else:
-                record['label'] = self.others_label
-            return
+                return self.incomes_label
+            return self.others_label
         
         relen = lambda r: len(r.pattern)
         label = matches[sorted(matches.keys(), key=relen, reverse=True)[0]]
         rest = list(matches.values())
         rest.remove(label)
         INFO('%s\n  matches several labels\n  \033[1m%s\033[0m, %s' %
-             (record['account'], label, ', '.join(rest)))
-        record['label'] = label
+             (account, label, ', '.join(rest)))
+        return label

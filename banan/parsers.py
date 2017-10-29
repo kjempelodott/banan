@@ -99,12 +99,11 @@ class yAbankPDFParser(Parser):
                 sign = (1,-1)[entry.re == yAbankPDFParser.RE_CREDIT]
                 dd, mm = fields['date'].split('.')
 
-                fields['amount']       = sign * yAbankPDFParser.parse_amount(fields['amount'])
-                fields['amount_local'] = fields['amount']
-                fields['currency']     = 'NOK'
-                fields['date']         = date(yAbankPDFParser.YYYY, int(mm), int(dd))
-
-                yield fields
+                amount = sign * yAbankPDFParser.parse_amount(fields['amount'])
+                amount_local = fields['amount']
+                currency = 'NOK'
+                date = '%i-%i-%i' % (yAbankPDFParser.YYYY, int(mm), int(dd))
+                yield date, account, amount, amount_local, currency
 
                 page_pos = entry.end()
                 get_entry()
@@ -135,20 +134,18 @@ class CSVParser(Parser):
             if not line:
                 continue
             line = [cell.strip('"') for cell in line.split(cls.DELIM)]
-            entry['date']         = datetime.strptime(line[cls.DATEIDX], cls.DATEFORMAT).date()
-            entry['account']      = line[cls.ACCTIDX]
-            entry['amount']       = cls.parse_amount(line[cls.AMOUNTIDX])
-            entry['currency']     = line[cls.CURRENCYIDX]
+            date = datetime.strptime(line[cls.DATEIDX], cls.DATEFORMAT).date().isoformat()
+            account = line[cls.ACCTIDX]
+            amount = amount_local = cls.parse_amount(line[cls.AMOUNTIDX])
+            currency = line[cls.CURRENCYIDX]
             if cls.AMOUNTLCIDX != cls.AMOUNTIDX:
-                entry['amount_local'] = cls.parse_amount(line[cls.AMOUNTLCIDX])
-            else:
-                entry['amount_local'] = entry['amount']
-            cls._parse(entry)
-            yield entry
+                amount_local = cls.parse_amount(line[cls.AMOUNTLCIDX])
+            account, amount, currency = cls._parse(account, amount, currency)
+            yield date, account, amount, amount_local, currency
 
     @staticmethod
-    def _parse(entry):
-        pass
+    def _parse(cls, *args):
+        return args
 
 
 class yAbankCSVParser(CSVParser):
@@ -166,13 +163,14 @@ class yAbankCSVParser(CSVParser):
     AMOUNTLCIDX   = AMOUNTIDX
 
     @classmethod
-    def _parse(cls, entry):
+    def _parse(cls, account, amount, currency):
         # Special actions
         try:
-            entry['currency'], amount = cls.RE_NONLOCAL.match(entry['account']).groups()
-            entry['amount'] = cls.parse_amount(amount)
+            currency, amount = cls.RE_NONLOCAL.match(account).groups()
+            amount = cls.parse_amount(amount)
         except AttributeError:
-            entry['currency'] = 'NOK'
+            currency = 'NOK'
+        return account, amount, currency
 
 
 class BankNorwegianCSVParser(CSVParser):
@@ -206,15 +204,13 @@ class XLSParser(Parser):
         entry = {}
         datemode, rows = cls.read_file(fpath)
         for row in rows:
-            entry['date']         = xlrd.xldate_as_datetime(row[cls.DATEIDX].value, datemode)
-            entry['account']      = row[cls.ACCTIDX].value
-            entry['amount']       = row[cls.AMOUNTIDX].value
-            entry['currency']     = row[cls.CURRENCYIDX].value
+            date = xlrd.xldate_as_datetime(row[cls.DATEIDX].value, datemode).isoformat()
+            account = row[cls.ACCTIDX].value
+            amount = amount_local = row[cls.AMOUNTIDX].value
+            currency = row[cls.CURRENCYIDX].value
             if cls.AMOUNTLCIDX != cls.AMOUNTIDX:
-                entry['amount_local'] = row[cls.AMOUNTLCIDX].value
-            else:
-                entry['amount_local'] = entry['amount']
-            yield entry
+                amount_local = row[cls.AMOUNTLCIDX].value
+            yield date, account, amount, amount_local, currency
 
 
 class BankNorwegianXLSParser(XLSParser):

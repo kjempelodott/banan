@@ -47,17 +47,14 @@ def main(args):
         except SystemExit:
             print('SystemExit raised')
             exit(0)
-        finally:
-            print('closing database ...')
-            db.close()
 
     if args.server_action:
         if args.server_action == 'stop':
             Server.stop()
         elif args.server_action == 'start':
             Server().start()
-    else:
-        Server().restart()
+        else:
+            Server().restart()
 
 
 def parse_args():
