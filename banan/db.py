@@ -67,7 +67,6 @@ class TransactionsDB:
         total = 0
         graph = {}
         text = {}
-        sums = {}
         cur = self.db.cursor()
 
         try:
@@ -79,7 +78,7 @@ class TransactionsDB:
                 if len(dates) == 2:
                     yyyy = int(dates[1][2:])
                     mm = int(dates[1][:2])
-                date2 = '%i-%i02-01' % (yyyy + (mm == 12), M[mm - 12])
+                date2 = '%i-%02i-31' % (yyyy, mm)
                 print(date1, date2)
                 for label in self.config.labels.keys():
                     rows = cur.execute("""
@@ -90,24 +89,23 @@ class TransactionsDB:
                     """, (label, date1, date2))
                     _sum, data_array = self.process_data(rows)
                     if _sum:
-                        graph[label] = _sum
                         if label not in self.config.cash_flow_ignore:
                             total += _sum
                         else:
                             label += '*'
+                        graph[label] = _sum
                         text[label] = data_array
-                        sums[label] = [_sum, self.config.local_currency]
 
             elif period in ('month', 'year'):
                 date1 = date2 = first = datetime.now()
                 if period == 'month':
                     first = date(date1.year - 1, date1.month, 1)
-                    date1 = date(date1.year - (date1.month == 1), M[date1.month - 2], 1)
-                    date2 = date(date2.year, date2.month, 1)
+                    date1 = date(date1.year, date1.month, 1)
+                    date2 = date(date2.year, date2.month, 31)
                 else:
                     first = date(date1.year - 9, 1, 1)
                     date1 = date(date1.year, 1, 1)
-                    date2 = date(date2.year + 1, 1, 1)
+                    date2 = date(date2.year, 12, 31)
 
                 label = unquote_plus(labels).split(',')
                 while date1 >= first:
@@ -129,11 +127,9 @@ class TransactionsDB:
                     graph[key] = _sum
                     total += _sum
                     if data_array:
-                        text[label] = data_array
-                        sums[label] = [_sum, self.config.local_currency]
+                        text[key] = data_array
 
-            sums['==='] = total
-            return True, {'text' : text, 'graph' : graph, 'sums' : sums}
+            return True, {'text' : text, 'graph' : graph}
 
         except Exception as e:
             traceback.print_tb(sys.exc_info()[2])
