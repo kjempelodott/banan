@@ -46,10 +46,10 @@ class TransactionsDB:
             cur = self.db.cursor()
             data = cur.execute('SELECT hash, account, amount, currency, label FROM Transactions')
             for row in data.fetchall():
-                _hash, account, amount, currency, _label = record
+                _hash, account, amount, currency, _label = row
                 label = self.config.assign_label(account, amount, currency)
                 if label != _label:
-                    cur.execute('UPDATE Transactions SET label=? WHERE hash=?', label, _hash)
+                    cur.execute('UPDATE Transactions SET label=? WHERE hash=?', (label, _hash))
 
     def process_data(self, data):
         array = []
@@ -61,7 +61,7 @@ class TransactionsDB:
             array.append([date, account, amount])
         return _sum, array
     
-    def assemble_data(self, period=None, labels=None):
+    def assemble_data(self, period=None, label=None):
 
         M = list(range(1,13))
         total = 0
@@ -70,7 +70,7 @@ class TransactionsDB:
         cur = self.db.cursor()
 
         try:
-            if not labels:
+            if not label:
                 dates = re.findall('[0-9]{6}', unquote_plus(period))
                 yyyy = int(dates[0][2:])
                 mm = int(dates[0][:2])
@@ -107,14 +107,14 @@ class TransactionsDB:
                     date1 = date(date1.year, 1, 1)
                     date2 = date(date2.year, 12, 31)
 
-                label = unquote_plus(labels).split(',')
+                label = unquote_plus(label)
                 while date1 >= first:
                     rows = cur.execute("""
                     SELECT date(date), account, amount, amount_local, currency FROM Transactions
                       WHERE label=?
                       AND date BETWEEN ? AND ?
                       ORDER BY date
-                    """, (label, date1.isoformat(), date2.isoformat()))
+                    """, (label, date1, date2))
                     date2 = date1 
                     if period == 'month':
                         key = date1.strftime('%Y.%m') 

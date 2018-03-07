@@ -79,12 +79,12 @@ function postQuery() {
 	    return false;
 	}
 	var labelsArr = Array.prototype.slice.call(getElem('labels').childNodes);
-	var selectedLabels = labelsArr.filter(l => l.className == 'active');
-	var asStr = selectedLabels.map(l => l.id).join(',');
+	var selectedLabel = labelsArr.find(l => l.className == 'active');
+	var asStr = selectedLabel.id;
 	if (asStr.length == 0) {
 	    return false;
 	}
-	query['labels'] = asStr;
+	query['label'] = asStr;
     }
 
     fetch('', {
