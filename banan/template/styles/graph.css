@@ -24,7 +24,6 @@
 
 .amount, .label {
     display: block;
-    transition: opacity .5s ease-in-out;
 }
 
 .amount {
@@ -38,11 +37,13 @@
     height: auto;
     overflow: visible;
     opacity: 1;
+    transition: opacity .5s;
 }
 
 .bar:hover .label {
     height: 0;
     opacity: 0;
+    transition: opacity .5s;
 }
 
 p {
