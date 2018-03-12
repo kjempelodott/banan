@@ -1,4 +1,4 @@
-function print(view, text, sums) {
+function print(view, text) {
     var frame = view.getElementsByClassName('text')[0];
     frame.innerHTML = '';
     var keys = Object.keys(text).sort();
@@ -20,7 +20,7 @@ function print(view, text, sums) {
     }
 }
 
-function plot(view, graph, sums) {
+function plot(view, graph) {
     var frame = view.getElementsByClassName('graph')[0];
     frame.innerHTML = '';
     var keys = Object.keys(graph).sort();
@@ -52,6 +52,14 @@ function plot(view, graph, sums) {
 
 	frame.appendChild(bar);
     }
+
+    var views = document.getElementsByClassName('view');
+    Array.prototype.forEach.call(views, function(elem, index) {
+	elem.style.visibility = 'hidden';
+	elem.style.display = 'none';
+    });
+    view.style.visibility = 'visible';
+    view.style.display = 'inline';
 }
 
 function postQuery() {
