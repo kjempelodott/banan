@@ -64,7 +64,6 @@ class TransactionsDB:
     def assemble_data(self, period=None, label=None):
 
         M = list(range(1,13))
-        total = 0
         graph = {}
         text = {}
         cur = self.db.cursor()
@@ -79,7 +78,7 @@ class TransactionsDB:
                     yyyy = int(dates[1][2:])
                     mm = int(dates[1][:2])
                 date2 = '%i-%02i-31' % (yyyy, mm)
-                print(date1, date2)
+
                 for label in self.config.labels.keys():
                     rows = cur.execute("""
                     SELECT date(date), account, amount, amount_local, currency FROM Transactions
@@ -89,9 +88,7 @@ class TransactionsDB:
                     """, (label, date1, date2))
                     _sum, data_array = self.process_data(rows)
                     if _sum:
-                        if label not in self.config.cash_flow_ignore:
-                            total += _sum
-                        else:
+                        if label in self.config.cash_flow_ignore:
                             label += '*'
                         graph[label] = _sum
                         text[label] = data_array
@@ -99,7 +96,7 @@ class TransactionsDB:
             elif period in ('month', 'year'):
                 date1 = date2 = first = datetime.now()
                 if period == 'month':
-                    first = date(date1.year - 1, date1.month, 1)
+                    first = date(date1.year - 1, date1.month + 1, 1)
                     date1 = date(date1.year, date1.month, 1)
                     date2 = date(date2.year, date2.month, 31)
                 else:
@@ -117,7 +114,7 @@ class TransactionsDB:
                     """, (label, date1, date2))
                     date2 = date1 
                     if period == 'month':
-                        key = date1.strftime('%Y.%m') 
+                        key = date1.strftime('%Y-%m')
                         date1 = date(date2.year - (date2.month == 1), M[date2.month - 2], 1)
                     else:
                         key = str(date1.year)
@@ -125,7 +122,6 @@ class TransactionsDB:
 
                     _sum, data_array = self.process_data(rows)
                     graph[key] = _sum
-                    total += _sum
                     if data_array:
                         text[key] = data_array
 
