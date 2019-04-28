@@ -6,11 +6,9 @@ from banan import *
 
 map_of_maps = {
 
-    'yabank'        : { '.csv' : yAbankCSVParser,
-                        '.pdf' : yAbankPDFParser },
-
-    'banknorwegian' : { '.csv' : BankNorwegianCSVParser,
-                        '.xls' : BankNorwegianXLSParser,
+    'yabank'        : { '.csv' : yAbankCSVParser },
+    'ikano'         : { '.html': IkanoHTMLParser },
+    'banknorwegian' : { '.xls' : BankNorwegianXLSParser,
                         '.xlsx': BankNorwegianXLSParser }
 
 } 
@@ -43,7 +41,7 @@ def main(args):
                     print('ERROR: %s %s parser not implemented' % (args.bank, ext))
                     exit(0)
                 print('.. ' + fpath)
-                db.feed(fpath, bankparser)
+                db.feed(fpath, bankparser, args.label, -1 if args.sign else 1)
         except SystemExit:
             print('SystemExit raised')
             exit(0)
@@ -59,7 +57,7 @@ def main(args):
 
 def parse_args():
 
-    usage = '%s start | restart | stop | -f -b | -u | -h' % sys.argv[0]
+    usage = '%s start | restart | stop | -f -b [-l] [-s] | -u | -h' % sys.argv[0]
     desc = 'Manage database or server.'
 
     parser = ArgumentParser(usage=usage, description=desc)
@@ -67,6 +65,10 @@ def parse_args():
     db_group = parser.add_argument_group('# Database')
     db_group.add_argument('-f', '--feed', dest='files', metavar='FILES', help='feed FILES to database', nargs='+')
     db_group.add_argument('-b', '--bank', dest='bank', metavar='BANK', help='origin of FILES')
+    db_group.add_argument('-l', '--label', dest='label', metavar='LABEL', help='assign to LABEL')
+    db_group.add_argument('-s', '--sign', dest='sign',
+                          const=True, default=False, action='store_const',
+                          help='flip sign')
     db_group.add_argument('-u', '--update', dest='update', 
                           const=True, default=False, action='store_const',
                           help='re-assign labels')

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import re, os
+import re, os, csv
 from datetime import date, datetime
 from banan.logger import *
     
@@ -34,114 +34,23 @@ class Parser(object):
         pass
 
 
-class yAbankPDFParser(Parser):
-
-    # TODO: does not match "innbetaling m/kid 4.799,99 ...." yes, it does?!
-    RE_CREDIT = \
-        re.compile(r'(?P<date>\d\d\.\d\d)(?P<account>.{1,40}?)\d\d\.\d\d(?P<amount>[\.\d]+,\d\d)')
-    RE_DEBIT  = \
-        re.compile(r'(?P<account>.{1,40}?)(?P<date>\d\d\.\d\d)(?P<amount>[\.\d]+,\d\d)')
-
-    RE_YYYY   = re.compile('Saldo pr\. \d\d\.\d\d\.(\d\d\d\d)kr')
-    YYYY      = int()
-
-
-    @staticmethod
-    def convert(data):
-        from pdfminer.pdfinterp import PDFResourceManager, process_pdf
-        from pdfminer.converter import TextConverter
-        from StringIO import StringIO
-        pdfdata = StringIO(data)
-        htmldata = StringIO()
-        man = PDFResourceManager()
-        conv = TextConverter(man, htmldata)
-        process_pdf(man, conv, pdfdata)
-        data = htmldata.seek(0) or htmldata.read()
-        return data
-
-
-    @staticmethod
-    def set_year(pre):
-        try:
-            yAbankPDFParser.YYYY = int(yAbankPDFParser.RE_YYYY.search(pre).groups()[0])
-        except:
-            WARN('failed to extract year from pdf')
-            yAbankPDFParser.YYYY = date.today().year
-
-    @staticmethod
-    def parse(fpath):
-        data = yAbankPDFParser.read_file(fpath)
-        data = yAbankPDFParser.convert(data).split("Side:")[1:]
-        yAbankPDFParser.set_year(data.pop(0))
-
-        page_pos = 0
-
-        for page in data:
-
-            def get_entry():
-                global entry
-                entry = [yAbankPDFParser.RE_CREDIT.search(page, page_pos), 
-                         yAbankPDFParser.RE_DEBIT.search(page, page_pos)]
-
-                if entry[0] and entry[1]:
-                    entry = entry[entry[0].end() > entry[1].end()]
-                else:
-                    entry = entry.remove(None) or (None if not entry else entry[0])
-
-            get_entry()
-            while entry:
-                fields = entry.groupdict()
-                if 'favør' in fields['account']:
-                    page_pos = entry.end()
-                    get_entry()
-                    continue
-                
-                sign = (1,-1)[entry.re == yAbankPDFParser.RE_CREDIT]
-                dd, mm = fields['date'].split('.')
-
-                amount = sign * yAbankPDFParser.parse_amount(fields['amount'])
-                amount_local = fields['amount']
-                currency = 'NOK'
-                date = '%i-%i-%i' % (yAbankPDFParser.YYYY, int(mm), int(dd))
-                yield date, account, amount, amount_local, currency
-
-                page_pos = entry.end()
-                get_entry()
-
-            page_pos = 0
-
-
-    @staticmethod
-    def post_process(db, bogus=None):
-        if bogus:
-            # Remove the last entry, the invoice sum
-            db.remove(bogus)
-            INFO('  removed invoice sum entry')
-
-
 class CSVParser(Parser):
-
-    @classmethod
-    def read_file(cls, fpath):
-        data = super().read_file(fpath)
-        data = data.decode(cls.CHARSET)
-        return data.split('\n')[cls.SKIP:]
         
     @classmethod
-    def parse(cls, fpath):
-        entry = {}
-        for line in cls.read_file(fpath):
-            if not line:
-                continue
-            line = [cell.strip('"') for cell in line.split(cls.DELIM)]
-            date = datetime.strptime(line[cls.DATEIDX], cls.DATEFORMAT).date().isoformat()
-            account = line[cls.ACCTIDX]
-            amount = amount_local = cls.parse_amount(line[cls.AMOUNTIDX])
-            currency = line[cls.CURRENCYIDX]
-            if cls.AMOUNTLCIDX != cls.AMOUNTIDX:
-                amount_local = cls.parse_amount(line[cls.AMOUNTLCIDX])
-            account, amount, currency = cls._parse(account, amount, currency)
-            yield date, account, amount, amount_local, currency
+    def parse(cls, fpath, sign):
+        with open(fpath, newline='', encoding=cls.CHARSET) as csvfile:
+            for row in csv.reader(csvfile, dialect='excel', delimiter=cls.DELIM):
+                try:
+                    date = datetime.strptime(row[cls.DATEIDX], cls.DATEFORMAT).date().isoformat()
+                    account = row[cls.ACCTIDX]
+                    amount = amount_local = sign * cls.parse_amount(row[cls.AMOUNTIDX])
+                    currency = row[cls.CURRENCYIDX]
+                    if cls.AMOUNTLCIDX != cls.AMOUNTIDX:
+                        amount_local = sign * cls.parse_amount(row[cls.AMOUNTLCIDX])
+                    amount, currency, amount_local = cls._parse(account, amount, currency, amount_local)
+                    yield date, account, amount, amount_local, currency
+                except ValueError as e:
+                    print(e)
 
     @staticmethod
     def _parse(cls, *args):
@@ -150,41 +59,30 @@ class CSVParser(Parser):
 
 class yAbankCSVParser(CSVParser):
 
-    CHARSET       = 'utf-8'#'iso-8859-10'
-    DATEFORMAT    = '%d.%m.%Y'
-    DELIM         = ';'
-    SKIP          = 0
+    CHARSET       = 'iso-8859-10'
+    DATEFORMAT    = ' %d.%m.%Y'
+    DELIM         = ','
 
-    RE_NONLOCAL   = re.compile(r"^VISA .+ \d\d.\d\d (\D+) (\d+,\d\d) .+$")
-    DATEIDX       = 1
-    ACCTIDX       = 2
+    DATEIDX       = 0
+    ACCTIDX       = 1
     AMOUNTIDX     = 3
     CURRENCYIDX   = -1
     AMOUNTLCIDX   = AMOUNTIDX
 
     @classmethod
-    def _parse(cls, account, amount, currency):
+    def _parse(cls, account, amount, currency, amount_local):
         # Special actions
-        try:
-            currency, amount = cls.RE_NONLOCAL.match(account).groups()
-            amount = cls.parse_amount(amount)
-        except AttributeError:
-            currency = 'NOK'
-        return account, amount, currency
+        if account.startswith('Rentetransaksjon') or \
+           account.startswith('Rentekapitalisering') or \
+           account.startswith('Månedens rabatt') or \
+           account.startswith('Innbetaling fra'):
+            amount_local = abs(amount_local)
+            amount = abs(amount)
+        else:
+            amount_local = -abs(amount_local)
+            amount = -abs(amount)
 
-
-class BankNorwegianCSVParser(CSVParser):
-
-    CHARSET       = 'utf-8'
-    DATEFORMAT    = '%m/%d/%Y'
-    DELIM         = ';'
-    SKIP          = 1
-
-    DATEIDX       = 0
-    ACCTIDX       = 1
-    AMOUNTIDX     = 3
-    CURRENCYIDX   = 5
-    AMOUNTLCIDX   = 6
+        return amount, 'NOK', amount_local
 
 
 class XLSParser(Parser):
@@ -199,17 +97,16 @@ class XLSParser(Parser):
         return xls.datemode, rows
 
     @classmethod
-    def parse(cls, fpath):
+    def parse(cls, fpath, sign):
         import xlrd
-        entry = {}
         datemode, rows = cls.read_file(fpath)
         for row in rows:
             date = xlrd.xldate_as_datetime(row[cls.DATEIDX].value, datemode).isoformat()
             account = row[cls.ACCTIDX].value
-            amount = amount_local = row[cls.AMOUNTIDX].value
+            amount = amount_local = sign * row[cls.AMOUNTIDX].value
             currency = row[cls.CURRENCYIDX].value
             if cls.AMOUNTLCIDX != cls.AMOUNTIDX:
-                amount_local = row[cls.AMOUNTLCIDX].value
+                amount_local = sign * row[cls.AMOUNTLCIDX].value
             yield date, account, amount, amount_local, currency
 
 
@@ -223,3 +120,35 @@ class BankNorwegianXLSParser(XLSParser):
     AMOUNTIDX     = 3
     CURRENCYIDX   = 5
     AMOUNTLCIDX   = 6
+
+
+class IkanoHTMLParser(Parser):
+
+    CHARSET       = 'utf-16'
+    DATEFORMAT    = '%d.%m.%Y'
+    SKIP          = 1
+
+    DATEIDX       = 0
+    ACCTIDX       = 1
+    AMOUNTIDX     = 7
+
+    @classmethod
+    def read_file(cls, fpath):
+        from lxml import etree
+        html = etree.HTML(open(fpath, encoding=cls.CHARSET).read())
+        return html.find('body/table')
+
+    @classmethod
+    def parse(cls, fpath, sign):
+        table = cls.read_file(fpath)
+        for row in table.getchildren()[cls.SKIP:]:
+            items = row.getchildren()
+            date = items[cls.DATEIDX].getchildren()[0].text
+            date = datetime.strptime(date, cls.DATEFORMAT).date().isoformat()
+            account = items[cls.ACCTIDX].text
+            currency = 'NOK'
+            amount = items[cls.AMOUNTIDX].getchildren()[1].text
+            amount = amount_local = sign * float(amount
+                                                 .replace(' ','')
+                                                 .replace(',','.'))
+            yield date, account, amount, amount_local, currency

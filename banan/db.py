@@ -1,4 +1,5 @@
 import traceback, sys, re, sqlite3
+from calendar import monthrange
 from datetime import date, datetime
 from urllib.parse import unquote_plus
 from hashlib import sha1
@@ -22,31 +23,39 @@ class TransactionsDB:
               amount REAL,
               amount_local REAL,
               currency TEXT,
-              label TEXT
+              label TEXT,
+              label_hard INTEGER
             )""")
 
-    def feed(self, fpath, parser):
+    def feed(self, fpath, parser, _label, sign):
         with self.db:
             cur = self.db.cursor()
-            for record in parser.parse(fpath):
+            for record in parser.parse(fpath, sign):
                 date, account, amount, amount_local, currency = record
                 DEBUG('%s %-40s\t%12.2f %s' % (date,
                                                account[:40],
                                                amount,
                                                currency));
 
-                label = self.config.assign_label(account, amount, currency)
+                label_hard = 1
+                label = _label
+                if not _label:
+                    label = self.config.assign_label(account, amount, currency)
+                    label_hard = 0
+
                 cur.execute("""
                 INSERT OR IGNORE INTO Transactions
-                  VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (sha1(str(record).encode('utf-8')).hexdigest(), *record, label))
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (sha1(str(record).encode('utf-8')).hexdigest(), *record, label, label_hard))
 
     def update_labels(self):
         with self.db:
             cur = self.db.cursor()
-            data = cur.execute('SELECT hash, account, amount, currency, label FROM Transactions')
+            data = cur.execute('SELECT hash, account, amount, currency, label, label_hard FROM Transactions')
             for row in data.fetchall():
-                _hash, account, amount, currency, _label = row
+                _hash, account, amount, currency, _label, label_hard = row
+                if label_hard:
+                    continue
                 label = self.config.assign_label(account, amount, currency)
                 if label != _label:
                     cur.execute('UPDATE Transactions SET label=? WHERE hash=?', (label, _hash))
@@ -98,7 +107,7 @@ class TransactionsDB:
                 if period == 'month':
                     first = date(date1.year - 1, date1.month + 1, 1)
                     date1 = date(date1.year, date1.month, 1)
-                    date2 = date(date2.year, date2.month, 31)
+                    date2 = date(date2.year, date2.month, monthrange(date2.year, date2.month)[-1])
                 else:
                     first = date(date1.year - 9, 1, 1)
                     date1 = date(date1.year, 1, 1)

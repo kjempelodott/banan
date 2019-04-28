@@ -23,28 +23,26 @@
 }
 
 .amount, .label {
-    display: block;
+    display: inline;
+    font-family: monospace;
 }
 
-.amount {
-    height: 0;
-    font-style: italic;
-    overflow: hidden;
-    opacity: 0;
+.amount p {
+    padding-left: 10px;
 }
 
-.bar:hover .amount {
-    height: auto;
-    overflow: visible;
-    opacity: 1;
-    transition: opacity .5s;
-}
+/* .bar:hover .amount { */
+/*     height: auto; */
+/*     overflow: visible; */
+/*     opacity: 1; */
+/*     transition: opacity .5s; */
+/* } */
 
-.bar:hover .label {
-    height: 0;
-    opacity: 0;
-    transition: opacity .5s;
-}
+/* .bar:hover .label { */
+/*     height: 0; */
+/*     opacity: 0; */
+/*     transition: opacity .5s; */
+/* } */
 
 p {
     margin: 0;
@@ -54,10 +52,14 @@ p {
     opacity: .8;
 }
 
-.positive p {
+.amount p {
+    background-color: #333;
+}
+
+.positive .label p {
     background-color: #095;
 }
 
-.negative p {
+.negative .label p {
     background-color: #c63;
 }
