@@ -107,18 +107,18 @@ class TransactionsDB:
                 if period == 'month':
                     first = date(date1.year - 1, date1.month + 1, 1)
                     date1 = date(date1.year, date1.month, 1)
-                    date2 = date(date2.year, date2.month, monthrange(date2.year, date2.month)[-1])
+                    date2 = date(date2.year, date2.month, 1)
                 else:
                     first = date(date1.year - 9, 1, 1)
                     date1 = date(date1.year, 1, 1)
-                    date2 = date(date2.year, 12, 31)
+                    date2 = date(date2.year + 1, 1, 1)
 
                 label = unquote_plus(label)
                 while date1 >= first:
                     rows = cur.execute("""
                     SELECT date(date), account, amount, amount_local, currency FROM Transactions
                       WHERE label=?
-                      AND date BETWEEN ? AND ?
+                      AND date >= ? AND date < ?
                       ORDER BY date
                     """, (label, date1, date2))
                     date2 = date1 
