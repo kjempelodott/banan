@@ -56,6 +56,16 @@ class CSVParser(Parser):
     def _parse(cls, *args):
         return args
 
+class CustomCSVParser:
+    @classmethod
+    def parse(cls, fpath, *args):
+        month = os.path.splitext(os.path.split(fpath)[-1])[0]
+        date = datetime.strptime(month, '%Y_%m').date().isoformat()
+        with open(fpath) as csvfile:
+            for row in csv.reader(csvfile, dialect='excel', delimiter=';'):
+                account = row[1]
+                amount = int(row[2])
+                yield date, account, amount, amount, 'NOK'
 
 class yAbankCSVParser(CSVParser):
 

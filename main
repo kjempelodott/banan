@@ -6,6 +6,7 @@ from banan import *
 
 map_of_maps = {
 
+    'custom'        : { '.csv' : CustomCSVParser },
     'yabank'        : { '.csv' : yAbankCSVParser },
     'ikano'         : { '.html': IkanoHTMLParser },
     'banknorwegian' : { '.xls' : BankNorwegianXLSParser,
@@ -56,7 +57,6 @@ def main(args):
 
 
 def parse_args():
-
     usage = '%s start | restart | stop | -f -b [-l] [-s] | -u | -h' % sys.argv[0]
     desc = 'Manage database or server.'
 
